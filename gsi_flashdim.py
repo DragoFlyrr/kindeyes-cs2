@@ -38,11 +38,12 @@ DEFAULT_SETTINGS = {
         "GammaCurve": "0.65",
         "MaxAlpha": "0.95",
         "OverlayColor": "#000000",
-        "DebugHud": "0",
+        "DebugHud": "1",
         "HotkeyToggle": "F9",
         "HotkeyEyelids": "F10",
         "TickMs": "4",
         "LatencyProbe": "0",
+        "SelfTestOnStart": "1",
     }
 }
 
@@ -102,6 +103,7 @@ class State:
         self.peak_flash_since = 0
         self.applied_perf = 0.0    # perf_counter when current flashed value was applied to overlay
         self.last_applied_flash = -1
+        self.self_test_flash = 0   # non-zero during startup self-test
 
 state = State()
 
@@ -221,6 +223,7 @@ def run_overlay(settings):
     debug_hud = settings.get("DebugHud", "0").strip().lower() not in ("0", "false", "no", "")
     tick_ms = max(1, int(settings.get("TickMs", "4")))
     latency_probe = settings.get("LatencyProbe", "0").strip().lower() not in ("0", "false", "no", "")
+    self_test = settings.get("SelfTestOnStart", "1").strip().lower() not in ("0", "false", "no", "")
 
     SM_XVIRTUALSCREEN = 76
     SM_YVIRTUALSCREEN = 77
@@ -272,8 +275,14 @@ def run_overlay(settings):
         else:
             effective_flash = flashed
 
+        with state.lock:
+            selftest_val = state.self_test_flash
+
         if eyelids:
             alpha = max_alpha
+        elif selftest_val > 0:
+            normalized = selftest_val / 255.0
+            alpha = max_alpha * (normalized ** gamma)
         elif enabled:
             normalized = effective_flash / 255.0
             if normalized < 0:
@@ -315,11 +324,51 @@ def run_overlay(settings):
 
         root.after(tick_ms, tick)
 
+    if self_test:
+        def run_self_test():
+            log("self-test: ramping overlay up/down to prove it draws")
+            steps_up = [30, 80, 150, 220, 255]
+            steps_down = [220, 150, 80, 30, 0]
+            for v in steps_up:
+                with state.lock:
+                    state.self_test_flash = v
+                time.sleep(0.12)
+            time.sleep(0.4)
+            for v in steps_down:
+                with state.lock:
+                    state.self_test_flash = v
+                time.sleep(0.08)
+            with state.lock:
+                state.self_test_flash = 0
+            log("self-test complete")
+        threading.Thread(target=run_self_test, daemon=True).start()
+
     tick()
     try:
         root.mainloop()
     except KeyboardInterrupt:
         pass
+
+
+def check_single_instance(port):
+    """Exit early if another instance is already bound to our port."""
+    import socket
+    s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    s.settimeout(0.3)
+    try:
+        result = s.connect_ex(("127.0.0.1", port))
+        if result == 0:
+            log(f"port {port} already in use -- another instance running. exiting.")
+            s.close()
+            return False
+    except Exception:
+        pass
+    finally:
+        try:
+            s.close()
+        except Exception:
+            pass
+    return True
 
 
 def main():
@@ -328,6 +377,9 @@ def main():
     settings = load_settings()
     host = settings.get("ListenHost", "127.0.0.1")
     port = int(settings.get("ListenPort", "3000"))
+
+    if not check_single_instance(port):
+        return
 
     t_http = threading.Thread(target=run_http_server, args=(host, port), daemon=True)
     t_http.start()
