@@ -1,622 +1,519 @@
-#NoEnv
-#Persistent
+#Requires AutoHotkey v2.0
 #SingleInstance Force
-SetBatchLines, -1
 
-; Define path to settings file
-IniFile := A_ScriptDir . "\settings.ini"
-if !FileExist(IniFile) {
-    IniWrite, }, %IniFile%, Settings, HotkeyToggle
-    IniWrite, ., %IniFile%, Settings, HotkeyEyelids
-    IniWrite, 200, %IniFile%, Settings, Transparency
-    IniWrite, 50, %IniFile%, Settings, CheckInterval
-    IniWrite, 10, %IniFile%, Settings, FadingEvery
-    IniWrite, 0x000000, %IniFile%, Settings, BkColor
+iniFile := A_ScriptDir "\settings.ini"
+logFile := A_ScriptDir "\flashbang.log"
+if !FileExist(iniFile) {
+    IniWrite("F9",       iniFile, "Settings", "HotkeyToggle")
+    IniWrite("F10",      iniFile, "Settings", "HotkeyEyelids")
+    IniWrite("255",      iniFile, "Settings", "Transparency")
+    IniWrite("1",        iniFile, "Settings", "CheckInterval")
+    IniWrite("70",       iniFile, "Settings", "CoverageThreshold")
+    IniWrite("520",      iniFile, "Settings", "PeakHuntMs")
+    IniWrite("cs2.exe",  iniFile, "Settings", "TargetExe")
+    IniWrite("0x000000", iniFile, "Settings", "BkColor")
 }
 
-Winget, id, id, A
-WinSet, ExStyle, ^0x80,  ahk_id %id% ; 0x80 is WS_EX_TOOLWINDOW
+hkToggle          := IniRead(iniFile, "Settings", "HotkeyToggle", "F9")
+hkEyelids         := IniRead(iniFile, "Settings", "HotkeyEyelids", "F10")
+transparency      := Integer(IniRead(iniFile, "Settings", "Transparency", 255))
+checkInterval     := Integer(IniRead(iniFile, "Settings", "CheckInterval", 1))
+coverageThreshold := Integer(IniRead(iniFile, "Settings", "CoverageThreshold", 70))
+peakHuntMs        := Integer(IniRead(iniFile, "Settings", "PeakHuntMs", 520))
+targetExe         := IniRead(iniFile, "Settings", "TargetExe", "cs2.exe")
+bkColor           := IniRead(iniFile, "Settings", "BkColor", "0x000000")
 
+targetColor := 0xFFFFFF
+tolerance   := 12
+step        := 1920
 
-; --- Default Settings ---
-TargetColor := 0xFFFFFF
-ColorTolerance := 10
-CoverageThreshold := 100
-IniRead, HotkeyToggle, %IniFile%, Settings, HotkeyToggle, }
-IniRead, HotkeyEyelids, %IniFile%, Settings, HotkeyEyelids, .
-IniRead, Transparency, %IniFile%, Settings, Transparency, 200
-IniRead, CheckInterval, %IniFile%, Settings, CheckInterval, 50
-IniRead, FadingEvery, %IniFile%, Settings, FadingEvery, 10
-IniRead, BkColor, %IniFile%, Settings, BkColor, 0x000000, 
-Enabled := true
-global EyelidsClosed = 0
-global valueFading := 200
+DllCall("winmm\timeBeginPeriod", "UInt", 1)
+hScreenDC := DllCall("GetDC", "Ptr", 0, "Ptr")
+ProcessSetPriority("High")
 
-global appVersion := "v2.53"
-global AutoGuiW, EyelidColor, Bottom_OffsetX, Bottom_OffsetY, Bottom_Screen, Bottom_Win, DisplaySec
-global FixedX, FixedY, FontColor, FontName, FontSize, FontStyle, GuiHeight, GuiPosition, GuiWidth
-global SettingsGuiIsOpen, ShowModifierKeyCount, ShowMouseButton, ShowSingleModifierKey
-global ShowStickyModKeyCount, Top_OffsetX, Top_OffsetY, Top_Screen, Top_Win, hGui_OSD, hGUI_s
+cs2Active      := false
+cs2CheckTick   := 0
 
-
-
-; Read saved settings or set defaults
-
-
-
-
-
-
-
-CreateTrayMenu()
-
-
-CreateTrayMenu() {
-	Menu, Tray, NoStandard
-	Menu, Tray, Add, Settings, ShowSettingsGUI
-	Menu, Tray, Add
-	Menu, Tray, Add, Exit, _ExitApp
-	Menu, Tray, Default, Settings
+; ======== Audio peak meter (WASAPI IAudioMeterInformation) ========
+; Audio is a REQUIRED gate: fire overlay only when visual AND audio both confirm within ~500ms.
+; Flashbang audio signature = loud peak (proximity) + omnidirectional channels (not footstep/voice).
+audioMeter            := 0
+audioConfirmedUntil   := 0
+audioPeakThreshold    := 0.30   ; peak on ANY channel (sustain floor)
+audioPeakBangThreshold := 0.45  ; ADDITIONALLY: streak must contain at least one peak this loud (the bang itself)
+audioOmniRatio        := 0.00   ; surround audio isn't truly omnidirectional — disabled
+audioConfirmMs        := 2000   ; how long audio confirmation stays valid (tinnitus holds for seconds)
+audioSustainMs        := 120    ; peak must stay above threshold for this long (tinnitus, not taps)
+audioSustainReleaseRatio := 0.55 ; peak must drop below threshold*this to break sustain streak
+DllCall("ole32\CoInitializeEx", "Ptr", 0, "UInt", 2)
+try {
+    clsidMMDE := Buffer(16, 0)
+    iidMMDE   := Buffer(16, 0)
+    iidIAM    := Buffer(16, 0)
+    DllCall("ole32\CLSIDFromString", "WStr", "{BCDE0395-E52F-467C-8E3D-C4579291692E}", "Ptr", clsidMMDE)
+    DllCall("ole32\CLSIDFromString", "WStr", "{A95664D2-9614-4F35-A746-DE8DB63617E6}", "Ptr", iidMMDE)
+    DllCall("ole32\CLSIDFromString", "WStr", "{C02216F6-8C67-4B5B-9D00-D008E73E0064}", "Ptr", iidIAM)
+    pEnum := 0
+    hrEnum := DllCall("ole32\CoCreateInstance", "Ptr", clsidMMDE, "Ptr", 0, "UInt", 0x1, "Ptr", iidMMDE, "Ptr*", &pEnum)
+    if (hrEnum != 0 || !pEnum)
+        throw Error("CoCreateInstance(MMDeviceEnumerator) hr=" Format("{:08X}", hrEnum))
+    ; IMMDeviceEnumerator::GetDefaultAudioEndpoint (vtable idx 4): eRender=0, eConsole=0
+    pDevice := 0
+    vtbl := NumGet(pEnum, "Ptr")
+    hrDev := DllCall(NumGet(vtbl + 4 * A_PtrSize, "Ptr"), "Ptr", pEnum, "UInt", 0, "UInt", 0, "Ptr*", &pDevice)
+    if (hrDev != 0 || !pDevice)
+        throw Error("GetDefaultAudioEndpoint hr=" Format("{:08X}", hrDev))
+    ; IMMDevice::Activate (vtable idx 3): IID_IAudioMeterInformation, CLSCTX_INPROC_SERVER
+    pMeter := 0
+    vtbl2 := NumGet(pDevice, "Ptr")
+    hrAct := DllCall(NumGet(vtbl2 + 3 * A_PtrSize, "Ptr"), "Ptr", pDevice, "Ptr", iidIAM, "UInt", 0x1, "Ptr", 0, "Ptr*", &pMeter)
+    if (hrAct != 0 || !pMeter)
+        throw Error("Activate(IAudioMeterInformation) hr=" Format("{:08X}", hrAct))
+    audioMeter := pMeter
 }
 
-_ExitApp() {
-    SaveSettings()
-    ExitApp
-}
-
-
-
-sGuiAddTitleText(text) {
-	Gui, s:Font, s16
-	Gui, s:Add, Text, xm y+20, %text%
-	Gui, s:Font, s12
-}
-
-ShowSettingsGUI() {
-	global HotkeyToggle
-	global HotkeyEyelids
-	global Transparency
-	global CheckInterval
-	global FadingEvery
-		global NewHotkey
-		global FadingEveryN
-		global TransNVal
-		global CheckNVal
-		global NewEyelidToggle
-		global HotkeyEyelids
-		
-	SettingsGuiIsOpen := true
-
-	Gui, s:Destroy
-	Gui, s:+HWNDhGUI_s
-	Gui, s:Font, s12
-
-	Gui, s:Add, Button, x+82 yp+2 gResetDefaults, Reset to Defaults
-
-	Gui, s:Add, Text, xm yp+34, ____________________________________
-	Gui, s:Add, Text, xm yp+20, To start on boot, copy script to this folder:
-	Gui, s:Add, Button, xm+73 yp+20 gOpenStartupFolder, Open Startup Folder
-	Gui, s:Add, Text, xm yp+34, ____________________________________
-	
-	Gui, s:Add, Text, xm y+1, Enable/Disable script:
-	Gui, s:Add, Hotkey, x+10 w100 vNewHotkey gHotkeyChanged, %HotkeyToggle%
-
-	Gui, s:Add, Text, xm yp+28, ____________________________________
-
-	Gui, s:Add, Text, xm y+1, Eyelid Key:
-	Gui, s:Add, Hotkey, x+10 w100 vNewEyelidToggle gEyelidToggleChanged, %HotkeyEyelids%
-
-	Gui, s:Add, Text, xm yp+28, ____________________________________
-
-	Gui, s:Add, Text, xm y+1, Transparency:
-	Gui, s:Add, Slider, xm+10 w300 vTransN Range50-255 ToolTip gUpdateTransVal, %Transparency%
-
-	Gui, s:Add, Text, xm yp+25, ____________________________________
-
-	Gui, s:Add, Text, xm y+1, Increase this value only if you're losing FPS
-	Gui, s:Add, Text, xm y+1, Check Every (milliseconds):
-	Gui, s:Add, Slider, xm+10 w300 vCheckN Range1-500 ToolTip gUpdateCheckInterval, %CheckInterval%
-
-	Gui, s:Add, Text, xm yp+25, ____________________________________
-
-	Gui, s:Add, Text, xm y+1, Fading (How fast it disappears): 
-	Gui, s:Add, Slider, xm+10 w300 vFadingEveryN Range5-200 ToolTip gUpdateFadingEvery, %FadingEvery%
-
-	Gui, s:Add, Text, xm yp+25, ____________________________________
-
-	Gui, s:Add, Button, xm+82 y+1 gChangeBkColor, Change Overlay Color
-
-	Gui, s:Add, Text, xm yp+34, ____________________________________
-	Gui, s:Add, Text, xm y+5, >-------- Created by Brian Vuksanovich --------<
-	Gui, s:Add, Text, xm y+10, Report bugs by commenting on
-	Gui, s:Add, Button, xm+220 yp-7 gOpenWebsite, this video
-	Gui, s:Add, Text, xm+40 yp+40, and
-	Gui, s:Add, Button, x+6 yp-7 gOpenSubscribe, Subscribe to my channel!
-
-
-
-
-
-	if (GuiPosition = "Fixed Position")
-		OSD_EnableDrag()
-	Gui, s:Show,, Settings - FlashbangColorChanger
-
-
-
-	_CheckValues:
-		Loop, Parse, Bottom_OffsetX,Bottom_OffsetY,Top_OffsetX,Top_OffsetY,FixedX,FixedY
-		{
-			if (%A_LoopField% = "") {
-				%A_LoopField% := 0
-			}
-		}
-	return
-
-	_AutoGuiW:
-		; GuiControlGet, AutoGuiW, s:
-		Gui, Submit, NoHide
-		GuiControl, % "s:Enable" !AutoGuiW, GuiWidth
-		GuiControl, % "s:Enable" !AutoGuiW, GuiWUD
-		GuiControl, 1:+Redraw, HotkeyText
-	return
-
-	UpdateGuiPosition:
-		Gui, Submit, NoHide
-		if (NewHotkey != "") {
-			Hotkey, %HotkeyToggle%, ToggleScript, Off  ; remove old hotkey
-			HotkeyToggle := NewHotkey
-			Hotkey, %HotkeyToggle%, ToggleScript, On   ; set new hotkey
-		}
-
-		if (GuiPosition = "Fixed Position")
-			OSD_EnableDrag()
-		else
-			OSD_DisableDrag()
-	return
-
-
-	OpenWebsite:
-		Run, https://www.youtube.com/watch?v=TJouE879EUQ
-    return
-
-	OpenSubscribe:
-		Run, https://www.youtube.com/@brian-vuksanovich?sub_confirmation=1
-    return
-	
-	UpdateTransVal:
-		global TransNVal
-		global TransN
-		GuiControlGet, TransN
-		GuiControl,, TransNVal, % TransN
-		Transparency = %TransN%
-		SaveSettings()
-	return
-
-	UpdateCheckInterval:
-		global CheckNVal
-		global CheckN
-		GuiControlGet, CheckN
-		GuiControl,, CheckNVal, % CheckN
-		CheckInterval = %CheckN%
-		SetTimer, CheckForColor, Off     ; Stop the existing timer
-		SetTimer, CheckForColor, %CheckInterval%
-		SaveSettings()
-	return
-	
-	UpdateFadingEvery:
-		global FadingEvery
-		GuiControlGet, FadingEveryN
-		FadingEvery := FadingEveryN
-		SaveSettings()
-	return
-
-	ChangeBkColor:
-		global BkColor
-		newColor := BkColor
-		if Select_Color(hGUI_s, newColor) {
-			Gui, 1:Color, %newColor%
-			BkColor := newColor
-			SaveSettings()
-		}
-	return
-	
-	ChangeEyelidColor:
-		newColor := EyelidColor
-		if Select_Color(hGUI_s, newColor) {
-			Gui, 1:Color, %newColor%
-			EyelidColor := newColor
-			SaveSettings()
-		}
-	return
-	
-	UpdateFontSize:
-		GuiControlGet, FontSize
-		Gui, 1:Font, s%FontSize%
-		GuiControl, 1:Font, HotkeyText
-	return
-	
-	
-	
-	; --- Hotkey Change Handler ---
-	HotkeyChanged:
-		Gui, s:Submit, NoHide  ; Capture the new hotkey entered by the user
-
-		; Check if the entered hotkey is valid and handle it gracefully
-		if (NewHotkey == "") {
-			; If nothing entered, just skip
-			return
-		}
-
-		; Try applying the new hotkey, but if it fails, just ignore it
-		Try {
-			; Unbind the old hotkey (if it exists)
-			if (HotkeyToggle != "") {
-				Hotkey, %HotkeyToggle%, ToggleScript, Off
-			}
-
-			; Bind the new hotkey
-			Hotkey, %NewHotkey%, ToggleScript, On
-			; If we reach here, it means the key was valid, so we update the hotkey
-			HotkeyToggle := NewHotkey
-		}
-		Catch {
-			; If an error occurs (e.g., invalid hotkey), just silently ignore it
-		}
-
-			; Focus on the Transparency slider (or any other control you choose)
-			GuiControl, Focus, TransN  ; Move focus to the Transparency slider
-		SaveSettings()
-	return
-
-
-
-	; --- Apply New Hotkey ---
-	ApplyNewHotkey:
-		Gui, s:Submit, NoHide  ; Submit the GUI input
-
-			; Unbind the old hotkey
-			if (HotkeyToggle != "") {
-				Hotkey, %HotkeyToggle%, ToggleScript, Off
-			}
-			; Set the new hotkey
-			HotkeyToggle := NewHotkey
-			; Bind the new hotkey
-			Hotkey, %HotkeyToggle%, ToggleScript, On
-	return
-	
-	
-	
-	; --- EyelidToggleChanged Change Handler ---
-		EyelidToggleChanged:
-			global NewEyelidToggle
-			global HotkeyEyelids
-			Gui, s:Submit, NoHide  ; Capture the new hotkey entered by the user
-
-			; Check if the entered hotkey is valid and handle it gracefully
-			if (NewEyelidToggle == "") {
-				; If nothing entered, just skip
-				
-				return
-			}
-
-			; Try applying the new hotkey, but if it fails, just ignore it
-			Try {
-				; Unbind the old hotkey (if it exists)
-				if (HotkeyEyelids != "") {
-					Hotkey, %HotkeyEyelids%, ToggleOverlay, Off
-				}
-
-				; Bind the new hotkey
-				Hotkey, %NewEyelidToggle%, ToggleOverlay, On
-				; If we reach here, it means the key was valid, so we update the hotkey
-				HotkeyEyelids := NewEyelidToggle
-			}
-			Catch {
-				; If an error occurs (e.g., invalid hotkey), just silently ignore it
-			}
-
-			; Focus on the Transparency slider (or any other control you choose)
-			GuiControl, Focus, TransN  ; Move focus to the Transparency slider
-		SaveSettings()
-	return
-	
-		
-	ResetDefaults:
-		; Make sure the variables are global
-		global HotkeyToggle, HotkeyEyelids, Transparency, CheckInterval, FadingEvery, BkColor
-		
-		; Unbind hotkeys
-		Hotkey, %HotkeyToggle%, ToggleScript, Off
-		Hotkey, %HotkeyEyelids%, ToggleOverlay, Off
-		
-		; Load them into your script variables again
-		HotkeyToggle := "}"  ; Set the default value for HotkeyToggle
-		HotkeyEyelids := "."  ; Set the default value for HotkeyEyelids
-		Transparency := 200  ; Set the default value for Transparency
-		CheckInterval := 50  ; Set the default value for CheckInterval
-		FadingEvery := 10    ; Set the default value for FadingEvery
-		BkColor := 0x000000  ; Set the default value for BkColor
-		
-		; Update GUI controls with new values
-		GuiControl,, NewHotkey, %HotkeyToggle%
-		GuiControl,, NewEyelidToggle, %HotkeyEyelids%
-		GuiControl,, TransN, %Transparency%
-		GuiControl,, CheckN, %CheckInterval%
-		GuiControl,, FadingEveryN, %FadingEvery%
-		GuiControl,, ColorInput, %BkColor%
-		
-		; Rebind hotkeys with default values
-		Hotkey, %HotkeyToggle%, ToggleScript, On
-		Hotkey, %HotkeyEyelids%, ToggleOverlay, On
-		
-		; Save the reset settings to the INI file
-		SaveSettings()
-
-	return
-	
-}
-
-
-WM_LBUTTONDOWN(wParam, lParam, msg, hwnd) {
-	static hCursor := DllCall("LoadCursor", "Uint", 0, "Int", 32646, "Ptr") ; SizeAll = 32646
-
-	if (hwnd = hGui_OSD) {
-		PostMessage, 0xA1, 2
-		DllCall("SetCursor", "ptr", hCursor)
-	}
-}
-
-WM_MOVE(wParam, lParam, msg, hwnd) {
-	if (hwnd = hGui_OSD) && GetKeyState("LButton", "P")
-	{
-		GuiControl, s:, FixedX, % lParam << 48 >> 48
-		GuiControl, s:, FixedY, % lParam << 32 >> 48
-	}
-}
-
-OSD_EnableDrag() {
-	OnMessage(0x0201, "WM_LBUTTONDOWN")
-	OnMessage(0x0003, "WM_MOVE")
-	Gui, 1:-E0x20
-}
-
-OSD_DisableDrag() {
-	OnMessage(0x0201, "")
-	OnMessage(0x0003, "")
-	Gui, 1:+E0x20
-}
-
-
-
-
-
-
-
-;-------------------------------------------------------------------------------
-Select_Color(hGui, ByRef Color) { ; using comdlg32.dll
-;-------------------------------------------------------------------------------
-
-    ; CHOOSECOLOR structure expects text color in BGR format
-    BGR := convert_Color(Color)
-
-    ; unused, but a valid pointer to the structure
-    VarSetCapacity(CUSTOM, 64, 0)
-
-
-    ;-----------------------------------
-    ; CHOOSECOLOR structure
-    ;-----------------------------------
-
-    If (A_PtrSize = 8) { ; 64 bit
-        VarSetCapacity(CHOOSECOLOR, 72, 0)
-        NumPut(     72, CHOOSECOLOR,  0) ; StructSize
-        NumPut(   hGui, CHOOSECOLOR,  8) ; hwndOwner
-        NumPut(    BGR, CHOOSECOLOR, 24) ; bgrColor
-        NumPut(&CUSTOM, CHOOSECOLOR, 32) ; lpCustColors
-        NumPut(  0x103, CHOOSECOLOR, 40) ; Flags
+GetAudioPeak() {
+    global audioMeter
+    if !audioMeter
+        return 0.0
+    peak := 0.0
+    try {
+        ; IAudioMeterInformation::GetPeakValue (vtable idx 3)
+        vtbl := NumGet(audioMeter, "Ptr")
+        DllCall(NumGet(vtbl + 3 * A_PtrSize, "Ptr"), "Ptr", audioMeter, "Float*", &peak)
     }
+    return peak
+}
 
-    Else { ; 32 bit
-        VarSetCapacity(CHOOSECOLOR, 36, 0)
-        NumPut(     36, CHOOSECOLOR,  0) ; StructSize
-        NumPut(   hGui, CHOOSECOLOR,  4) ; hwndOwner
-        NumPut(    BGR, CHOOSECOLOR, 12) ; bgrColor
-        NumPut(&CUSTOM, CHOOSECOLOR, 16) ; lpCustColors
-        NumPut(  0x103, CHOOSECOLOR, 20) ; Flags
+; Returns {max, min, count} of per-channel peaks.
+; Omnidirectional events (flashbang, nearby explosion): min/max ratio → 1.0
+; Directional events (footstep, voice, side gunshot): ratio → 0 (one side much louder)
+GetChannelPeaks() {
+    global audioMeter
+    out := { max: 0.0, min: 0.0, count: 0 }
+    if !audioMeter
+        return out
+    count := 0
+    try {
+        vtbl := NumGet(audioMeter, "Ptr")
+        ; IAudioMeterInformation::GetMeteringChannelCount (idx 4)
+        DllCall(NumGet(vtbl + 4 * A_PtrSize, "Ptr"), "Ptr", audioMeter, "UInt*", &count)
     }
-
-
-    ;-----------------------------------
-    ; call ChooseColorA function
-    ;-----------------------------------
-
-    If Not DllCall("comdlg32\ChooseColorA", "UInt", &CHOOSECOLOR)
-        Return, False
-
-
-    ;-----------------------------------
-    ; result to return
-    ;-----------------------------------
-
-    ; chosen color
-    RGB := convert_Color(NumGet(CHOOSECOLOR, A_PtrSize = 8 ? 24 : 12, "UInt"))
-    Color := SubStr("0x00000", 1, 10 - StrLen(RGB)) SubStr(RGB, 3)
-    Return, True
+    if (count <= 0)
+        return out
+    peaksBuf := Buffer(count * 4, 0)
+    try {
+        vtbl := NumGet(audioMeter, "Ptr")
+        ; IAudioMeterInformation::GetChannelsPeakValues (idx 5)
+        DllCall(NumGet(vtbl + 5 * A_PtrSize, "Ptr"), "Ptr", audioMeter, "UInt", count, "Ptr", peaksBuf)
+    }
+    mx := 0.0
+    mn := 1.0
+    Loop count {
+        p := NumGet(peaksBuf, (A_Index - 1) * 4, "Float")
+        if (p > mx)
+            mx := p
+        if (p < mn)
+            mn := p
+    }
+    out.max := mx
+    out.min := mn
+    out.count := count
+    return out
 }
 
+Log(msg) {
+    global logFile
+    try FileAppend(FormatTime(A_Now, "yyyy-MM-dd HH:mm:ss") "." Format("{:03}", A_TickCount & 0x3FF) " | " msg "`n", logFile)
+}
+try FileDelete(logFile)
+Log("startup | target=" targetExe " toggle=" hkToggle " eyelids=" hkEyelids " threshold=" coverageThreshold "% poll=" checkInterval "ms peakHunt=" peakHuntMs "ms")
+Log("audio meter | " (audioMeter ? "OK ptr=" audioMeter " peak≥" audioPeakThreshold " omni≥" audioOmniRatio " window=" audioConfirmMs "ms (REQUIRED for fire)" : "FAIL — audio gate disabled, visual-only fallback"))
 
+enabled        := true
+eyelidsClosed  := false
+overlayShown   := false
+overlay        := 0
+flashState     := 0
+peakCoverage   := 0
+stateStartTick := 0
+currentHoldMs  := 0
+currentFadeMs  := 0
+fadeValue      := 0
 
-;-------------------------------------------------------------------------------
-convert_Color(Color) { ; convert RGB <--> BGR
-;-------------------------------------------------------------------------------
-    $_FormatInteger := A_FormatInteger
-    SetFormat, Integer, Hex
-    Result := (Color & 0xFF) << 16 | Color & 0xFF00 | (Color >> 16) & 0xFF
-    SetFormat, Integer, % $_FormatInteger
-    Return, Result
+overlay := Gui("+AlwaysOnTop +ToolWindow -Caption +E0x8080020 -DPIScale +LastFound")
+overlay.BackColor := bkColor
+overlay.Show("x0 y0 w" A_ScreenWidth " h" A_ScreenHeight " NoActivate")
+WinSetTransparent(0, overlay.Hwnd)
+try DllCall("SetWindowPos", "Ptr", overlay.Hwnd, "Ptr", -1, "Int", 0, "Int", 0, "Int", 0, "Int", 0, "UInt", 0x13)
+Log("overlay pre-created hwnd=" overlay.Hwnd " size=" A_ScreenWidth "x" A_ScreenHeight)
+
+toggleHotkeyOK  := false
+eyelidsHotkeyOK := false
+try {
+    Hotkey(hkToggle, (*) => ToggleScript())
+    toggleHotkeyOK := true
+}
+try {
+    Hotkey(hkEyelids, (*) => ToggleEyelids())
+    eyelidsHotkeyOK := true
+}
+Log("hotkey register | toggle=" (toggleHotkeyOK ? "OK" : "FAIL") " eyelids=" (eyelidsHotkeyOK ? "OK" : "FAIL"))
+
+A_TrayMenu.Delete()
+A_TrayMenu.Add("Enable/Disable (" hkToggle ")", (*) => ToggleScript())
+A_TrayMenu.Add("Eyelids (" hkEyelids ")",       (*) => ToggleEyelids())
+A_TrayMenu.Add()
+A_TrayMenu.Add("Edit settings.ini",             (*) => Run('notepad.exe "' iniFile '"'))
+A_TrayMenu.Add("Open log",                      (*) => Run('notepad.exe "' logFile '"'))
+A_TrayMenu.Add("Reload",                        (*) => Reload())
+A_TrayMenu.Add()
+A_TrayMenu.Add("Exit",                          (*) => ExitApp())
+A_TrayMenu.Default := "Enable/Disable (" hkToggle ")"
+
+TrayTip("FlashBang ready | toggle=" hkToggle " eyelids=" hkEyelids, "FlashBang")
+OnExit(SaveSettings)
+SetTimer(PollLoop, -1)   ; one-shot: enters the busy-poll loop and never returns
+
+IsWhite(c) {
+    global targetColor, tolerance
+    return Abs((c & 0xFF) - (targetColor & 0xFF)) <= tolerance
+        && Abs(((c >> 8) & 0xFF) - ((targetColor >> 8) & 0xFF)) <= tolerance
+        && Abs(((c >> 16) & 0xFF) - ((targetColor >> 16) & 0xFF)) <= tolerance
 }
 
+FastPixel(x, y) {
+    global hScreenDC
+    cr := DllCall("Gdi32\GetPixel", "Ptr", hScreenDC, "Int", x, "Int", y, "UInt")
+    ; COLORREF is 0x00BBGGRR, convert to 0xRRGGBB
+    return ((cr & 0xFF) << 16) | (cr & 0xFF00) | ((cr >> 16) & 0xFF)
+}
 
+; CS2 flashbang characteristics:
+;   1. Fills entire screen uniformly (not localized like muzzle flash or sky)
+;   2. Nearly pure white — R ≈ G ≈ B (achromatic)
+;   3. Ramps to peak in ~3-5 frames
+; This kills sky false positives (blue-tinted, fails achromatic test)
+; and kills bright wall false positives (only part of screen, fails uniformity)
+IsFlashPixel(x, y) {
+    global hScreenDC
+    cr := DllCall("Gdi32\GetPixel", "Ptr", hScreenDC, "Int", x, "Int", y, "UInt")
+    r := cr & 0xFF
+    g := (cr >> 8) & 0xFF
+    b := (cr >> 16) & 0xFF
+    mn := r < g ? (r < b ? r : b) : (g < b ? g : b)
+    mx := r > g ? (r > b ? r : b) : (g > b ? g : b)
+    ; Audio gate protects against visual false positives → can use lower brightness floor
+    return mn >= 150 && (mx - mn) <= 25
+}
 
+QuickDetect() {
+    cx := A_ScreenWidth // 2
+    cy := A_ScreenHeight // 2
+    ; Require 6-of-9 coverage: muzzle flash lights ~1-2 points, real flashbang lights all 9
+    hits := 0
+    if IsFlashPixel(cx, cy)
+        hits++
+    if IsFlashPixel(cx - 800, cy)
+        hits++
+    if IsFlashPixel(cx + 800, cy)
+        hits++
+    if IsFlashPixel(cx, cy - 600)
+        hits++
+    if IsFlashPixel(cx, cy + 600)
+        hits++
+    ; Early-exit once we've passed threshold (saves up to 4 GetPixel calls)
+    if hits >= 4
+        return true
+    if IsFlashPixel(cx - 800, cy - 600)
+        hits++
+    if IsFlashPixel(cx + 800, cy - 600)
+        hits++
+    if IsFlashPixel(cx - 800, cy + 600)
+        hits++
+    if IsFlashPixel(cx + 800, cy + 600)
+        hits++
+    return hits >= 4
+}
 
+; Peak-hunt sampler: 9-point grid, returns percentage.
+; 9/9 = 100% (direct 0-53° flash), 8/9 = 89% (53-72°), 7/9 = 78% (72-101°),
+; 6/9 or less = 67% (glancing 101-180°). Drives the FlashProfile angle tier selection.
+SampleCoverage() {
+    cx := A_ScreenWidth // 2
+    cy := A_ScreenHeight // 2
+    hits := 0
+    if IsFlashPixel(cx, cy)
+        hits++
+    if IsFlashPixel(cx - 800, cy)
+        hits++
+    if IsFlashPixel(cx + 800, cy)
+        hits++
+    if IsFlashPixel(cx, cy - 600)
+        hits++
+    if IsFlashPixel(cx, cy + 600)
+        hits++
+    if IsFlashPixel(cx - 800, cy - 600)
+        hits++
+    if IsFlashPixel(cx + 800, cy - 600)
+        hits++
+    if IsFlashPixel(cx - 800, cy + 600)
+        hits++
+    if IsFlashPixel(cx + 800, cy + 600)
+        hits++
+    return hits * 100 / 9
+}
 
+FlashProfile(pct) {
+    ; [holdMs, fadeMs] — CS:GO reference angle table (full blindness + residual blinding)
+    ; 0-53°:    1.88s full + 2.99s fade = 4.87s total
+    ; 53-72°:   0.45s full + 2.95s fade = 3.40s total
+    ; 72-101°:  0.08s full + 1.87s fade = 1.95s total
+    ; 101-180°: 0.08s full + 0.87s fade = 0.95s total
+    if (pct >= 95)
+        return [1880, 2990]
+    if (pct >= 85)
+        return [450, 2950]
+    if (pct >= 75)
+        return [80, 1870]
+    return [80, 870]
+}
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-; Set initial hotkey
-Hotkey, %HotkeyToggle%, ToggleScript, On
-Hotkey, %HotkeyEyelids%, ToggleOverlay, On
-
-; --- Set Timer ---
-SetTimer, CheckForColor, %CheckInterval%
-
-return
-
-
-
-
-
-
-
-
-; --- FUNCTIONS ---
-
-CheckForColor:
-if (!Enabled)
-    return
-
-FoundPixels := 0
-TotalSamples := 0
-Step := 500
-
-Loop, % (A_ScreenWidth // Step) {
-    x := (A_Index - 1) * Step
-    Loop, % (A_ScreenHeight // Step) {
-        y := (A_Index - 1) * Step
-        PixelGetColor, pixelColor, %x%, %y%, RGB
-        if (Abs((pixelColor & 0xFF) - (TargetColor & 0xFF)) <= ColorTolerance
-         && Abs(((pixelColor >> 8) & 0xFF) - ((TargetColor >> 8) & 0xFF)) <= ColorTolerance
-         && Abs(((pixelColor >> 16) & 0xFF) - ((TargetColor >> 16) & 0xFF)) <= ColorTolerance)
-        {
-            FoundPixels++
+PollLoop() {
+    global enabled, eyelidsClosed, flashState, targetExe, cs2Active, cs2CheckTick
+    global audioMeter, audioConfirmedUntil, audioPeakThreshold, audioOmniRatio, audioConfirmMs
+    global audioSustainMs, audioSustainReleaseRatio, audioPeakBangThreshold
+    lastLoggedAudio := 0
+    lastAudioDiag   := 0
+    lastVisualMiss  := 0
+    audioMaxSinceDiag := 0.0
+    sustainStartTick  := 0        ; 0 = not currently in a sustain streak
+    sustainMaxPeak    := 0.0      ; highest peak seen during current streak
+    sustainReleaseFloor := audioPeakThreshold * audioSustainReleaseRatio
+    ; Visual persistence: require visual to hold for visualStableMs before firing (filters brief flickers)
+    visualArmTick     := 0
+    visualStableMs    := 40
+    loop {
+        if (!enabled || flashState != 0) {
+            Sleep(5)
+            continue
         }
-        TotalSamples++
-    }
-}
-
-Coverage := (FoundPixels / TotalSamples) * 100
-
-if (Coverage >= CoverageThreshold or EyelidsClosed = 1)
-    ShowOverlay(BkColor)
-return
-
-
-ShowOverlay(color := "Black") {
-    global Transparency
-	if (EyelidsClosed = 0){
-		Gui, Destroy
-	}
-    WinGet, activeWindow, ID, A  ; Save currently active window
-	Gui, +AlwaysOnTop +ToolWindow -Caption +E0x80020 +LastFound -DPIScale
-    Gui, Color, %color%
-
-    Gui, Show, x1 y0 w%A_ScreenWidth% h%A_ScreenHeight% NoActivate, Overlay
-    WinSet, Transparent, %Transparency%, Overlay
-    WinActivate, ahk_id %activeWindow%
-    SetTimer, FadeOutOverlay, 1
-}
-
-
-
-FadeOutOverlay:
-	global FadingEvery
-    FoundPixel := 0
-
-            PixelGetColor, pixelColor, 1, 1, RGB
-            if (Abs((pixelColor & 0xFF) - (TargetColor & 0xFF)) <= ColorTolerance
-             && Abs(((pixelColor >> 8) & 0xFF) - ((TargetColor >> 8) & 0xFF)) <= ColorTolerance
-             && Abs(((pixelColor >> 16) & 0xFF) - ((TargetColor >> 16) & 0xFF)) <= ColorTolerance)
-            {
-                FoundPixels++
+        tick := A_TickCount
+        if (tick - cs2CheckTick > 100) {
+            cs2Active := WinActive("ahk_exe " targetExe) != 0
+            cs2CheckTick := tick
+        }
+        if !cs2Active {
+            Sleep(5)
+            continue
+        }
+        ; AUDIO half
+        audioPasses := false
+        audioMax    := 0.0
+        audioMin    := 0.0
+        audioRatio  := 0.0
+        audioChannels := 0
+        if audioMeter {
+            ap := GetChannelPeaks()
+            audioMax := ap.max
+            audioMin := ap.min
+            audioChannels := ap.count
+            audioRatio := (ap.max > 0) ? (ap.min / ap.max) : 0
+            if (audioMax > audioMaxSinceDiag)
+                audioMaxSinceDiag := audioMax
+            ; Sustain + peak-bang tracking.
+            ;   Real flashbang: bang (peak >= bangThreshold) followed by tinnitus (sustained >= peakThreshold)
+            ;   Wall impact / gunfire: either peaks briefly without sustain, OR sustains without ever hitting bang-loud
+            ; Streak state machine: above threshold = extend; below release floor = break; between = hold
+            if (audioMax >= audioPeakThreshold) {
+                if (sustainStartTick = 0) {
+                    sustainStartTick := tick
+                    sustainMaxPeak := audioMax
+                } else if (audioMax > sustainMaxPeak) {
+                    sustainMaxPeak := audioMax
+                }
+            } else if (audioMax < sustainReleaseFloor) {
+                if (sustainStartTick != 0 && tick - sustainStartTick > 50) {
+                    Log("audio sustain broken after " (tick - sustainStartTick) "ms (maxPeak=" Round(sustainMaxPeak, 3) " droppedTo=" Round(audioMax, 3) ")")
+                }
+                sustainStartTick := 0
+                sustainMaxPeak := 0.0
             }
-
-    if (FoundPixels > 0)
-    {
-;		MsgBox, This is a message.
-        valueFading := 200
-    } else if (EyelidsClosed = 1){
-;		Sleep 1000
-        valueFading := 200
-		EyelidsClosed = 0
-    } else {
-			valueFading -= FadingEvery
-			if (valueFading <= 0)
-			{
-				SetTimer, FadeOutOverlay, Off
-				Gui, Destroy
-				return	
-			}
+            ; Pass check runs EVERY tick during an active streak — peak may dip below threshold mid-tinnitus
+            if (sustainStartTick != 0 && tick - sustainStartTick >= audioSustainMs && sustainMaxPeak >= audioPeakBangThreshold) {
+                audioPasses := true
+                audioConfirmedUntil := tick + audioConfirmMs
+                if (tick - lastLoggedAudio > 300) {
+                    Log("AUDIO pass bangPeak=" Round(sustainMaxPeak, 3) " sustained=" (tick - sustainStartTick) "ms nowPeak=" Round(audioMax, 3) " ch=" audioChannels)
+                    lastLoggedAudio := tick
+                }
+            }
+        }
+        ; Periodic audio diagnostic — every 2 seconds, report max peak observed
+        if (tick - lastAudioDiag > 2000) {
+            Log("audio diag maxPeakSince=" Round(audioMaxSinceDiag, 3) " nowMax=" Round(audioMax, 3) " nowMin=" Round(audioMin, 3) " ratio=" Round(audioRatio, 2) " ch=" audioChannels " audioConfirmed=" (tick < audioConfirmedUntil ? "YES" : "no"))
+            lastAudioDiag := tick
+            audioMaxSinceDiag := 0.0
+        }
+        ; VISUAL detection — require 4-of-9 to hold for visualStableMs (rejects transient flickers)
+        visualPasses := QuickDetect()
+        if visualPasses {
+            if (visualArmTick = 0)
+                visualArmTick := tick
+            if (tick - visualArmTick >= visualStableMs) {
+                Log("DETECT visual 4-of-9 held " (tick - visualArmTick) "ms")
+                StartFlash(0)
+                visualArmTick := 0
+                continue
+            }
+        } else {
+            visualArmTick := 0
+        }
+        if eyelidsClosed {
+            StartFlash(100)
+            continue
+        }
+        Sleep(-1)
     }
-return
-
-
-
-
-; --- Hotkey Close Eyelids ---
-
-ToggleOverlay:
-    if (EyelidsClosed = 0) {
-		EyelidsClosed = 1
-    } else {
-		EyelidsClosed = 0
-    }
-return
-
-
-
-; --- MENU HANDLERS ---
-
-ToggleScript:
-Enabled := !Enabled
-    if (Enabled) {
-        DllCall("ShowCursor", "Int", false)
-        cursorHidden := true
-    } else {
-		DllCall("ShowCursor", "Int", true)
-    }
-Gui, Destroy
-return
-
-
-
-OnExit("SaveSettings")
-
-SaveSettings() {
-    global IniFile, HotkeyToggle, HotkeyEyelids, Transparency, CheckInterval, FadingEvery, BkColor
-    IniWrite, %HotkeyToggle%, %IniFile%, Settings, HotkeyToggle
-    IniWrite, %HotkeyEyelids%, %IniFile%, Settings, HotkeyEyelids
-    IniWrite, %Transparency%, %IniFile%, Settings, Transparency
-    IniWrite, %CheckInterval%, %IniFile%, Settings, CheckInterval
-    IniWrite, %FadingEvery%, %IniFile%, Settings, FadingEvery
-    IniWrite, %BkColor%, %IniFile%, Settings, BkColor
 }
 
-OpenStartupFolder:
-    Run, shell:startup
-return
+StartFlash(initialPct) {
+    global flashState, peakCoverage, stateStartTick, overlay, overlayShown, transparency, fadeValue
+    ; CRITICAL PATH: flip alpha first, log/timers after
+    try DllCall("user32\SetLayeredWindowAttributes", "Ptr", overlay.Hwnd, "UInt", 0, "UChar", transparency, "UInt", 2)
+    overlayShown := true
+    fadeValue := transparency
+    flashState := 1
+    peakCoverage := initialPct
+    stateStartTick := A_TickCount
+    SetTimer(StateMachine, 1)
+    try DllCall("SetWindowPos", "Ptr", overlay.Hwnd, "Ptr", -1, "Int", 0, "Int", 0, "Int", 0, "Int", 0, "UInt", 0x13)
+    Log("DETECT initial=" Round(initialPct) "% -> peak-hunt")
+}
 
+ForceTopmost(hwnd) {
+    try DllCall("SetWindowPos", "Ptr", hwnd, "Ptr", -1, "Int", 0, "Int", 0, "Int", 0, "Int", 0, "UInt", 0x13)
+}
 
+ShowOverlay() {
+    global overlay, overlayShown, transparency, fadeValue
+    if overlayShown
+        return
+    try {
+        WinSetTransparent(transparency, overlay.Hwnd)
+        overlayShown := true
+        fadeValue := transparency
+        Log("overlay SHOWN trans=" transparency)
+    } catch as e {
+        Log("overlay SHOW FAILED: " e.Message)
+        return
+    }
+    ForceTopmost(overlay.Hwnd)
+}
 
-ExitScript:
-ExitApp
+HideOverlay() {
+    global overlay, overlayShown, flashState
+    if overlayShown {
+        try WinSetTransparent(0, overlay.Hwnd)
+        overlayShown := false
+        flashState := 0
+        Log("overlay hidden, resuming detection")
+        SetTimer(StateMachine, 0)
+    }
+}
+
+StateMachine() {
+    global flashState, peakCoverage, stateStartTick, peakHuntMs, currentHoldMs, currentFadeMs
+    global overlay, overlayShown, transparency, fadeValue, eyelidsClosed
+    if !overlayShown {
+        SetTimer(StateMachine, 0)
+        return
+    }
+    elapsed := A_TickCount - stateStartTick
+
+    if (flashState == 1) {
+        pct := SampleCoverage()
+        if (pct > peakCoverage)
+            peakCoverage := pct
+        if (elapsed >= peakHuntMs) {
+            ; Peak-hunt never found any white → initial detection was a false positive, abort
+            if (peakCoverage = 0) {
+                Log("peak=0% after " peakHuntMs "ms -> false positive, aborting")
+                HideOverlay()
+                return
+            }
+            profile := FlashProfile(peakCoverage)
+            currentHoldMs := profile[1]
+            currentFadeMs := profile[2]
+            stateStartTick := A_TickCount
+            flashState := 2
+            Log("peak=" Round(peakCoverage) "% -> hold=" currentHoldMs "ms fade=" currentFadeMs "ms")
+        }
+        ForceTopmost(overlay.Hwnd)
+        return
+    }
+
+    if eyelidsClosed {
+        fadeValue := transparency
+        try WinSetTransparent(transparency, overlay.Hwnd)
+        stateStartTick := A_TickCount
+        if (flashState == 3)
+            flashState := 2
+        ForceTopmost(overlay.Hwnd)
+        return
+    }
+
+    if (flashState == 2) {
+        if (elapsed >= currentHoldMs) {
+            stateStartTick := A_TickCount
+            flashState := 3
+            Log("hold done -> fading " currentFadeMs "ms")
+        }
+        ForceTopmost(overlay.Hwnd)
+        return
+    }
+
+    if (flashState == 3) {
+        if (elapsed >= currentFadeMs) {
+            HideOverlay()
+            return
+        }
+        newAlpha := Ceil(transparency * (1 - elapsed / currentFadeMs))
+        if (newAlpha < 1)
+            newAlpha := 1
+        fadeValue := newAlpha
+        try WinSetTransparent(newAlpha, overlay.Hwnd)
+        ForceTopmost(overlay.Hwnd)
+    }
+}
+
+ToggleScript(*) {
+    global enabled
+    enabled := !enabled
+    Log("toggle -> " (enabled ? "enabled" : "disabled"))
+    if !enabled
+        HideOverlay()
+    TrayTip(enabled ? "Enabled" : "Disabled", "FlashBang")
+}
+
+ToggleEyelids(*) {
+    global eyelidsClosed, flashState
+    eyelidsClosed := !eyelidsClosed
+    Log("eyelids -> " (eyelidsClosed ? "closed" : "open"))
+    if (eyelidsClosed && flashState == 0)
+        StartFlash(100)
+}
+
+SaveSettings(*) {
+    global iniFile, hkToggle, hkEyelids, transparency, checkInterval, coverageThreshold, peakHuntMs, targetExe, bkColor
+    try {
+        IniWrite(hkToggle,          iniFile, "Settings", "HotkeyToggle")
+        IniWrite(hkEyelids,         iniFile, "Settings", "HotkeyEyelids")
+        IniWrite(transparency,      iniFile, "Settings", "Transparency")
+        IniWrite(checkInterval,     iniFile, "Settings", "CheckInterval")
+        IniWrite(coverageThreshold, iniFile, "Settings", "CoverageThreshold")
+        IniWrite(peakHuntMs,        iniFile, "Settings", "PeakHuntMs")
+        IniWrite(targetExe,         iniFile, "Settings", "TargetExe")
+        IniWrite(bkColor,           iniFile, "Settings", "BkColor")
+    }
+}
