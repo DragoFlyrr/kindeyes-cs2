@@ -1,9 +1,6 @@
-2026-04-23 03:50:04.119 | === startup ===
-2026-04-23 03:50:04.119 | script_dir=C:\Users\Drago\flashbangcolorchanger
-2026-04-23 03:50:04.897 | GSI listener bound 127.0.0.1:3000 (threaded)
-2026-04-23 03:50:06.064 | overlay ready vscreen=3840x2160@0,0 dpi=per-monitor-v2 gamma=0.65 max_alpha=0.95 debug_hud=True tick_ms=4 latency_probe=False
-2026-04-23 03:50:06.065 | self-test: ramping overlay up/down to prove it draws
-2026-04-23 03:50:07.469 | self-test complete
-2026-04-23 03:50:21.814 | first GSI payload received; flashed=128
-2026-04-23 03:50:21.817 | flashed=128 alpha=0.607 enabled=True eyelids=False
-2026-04-23 03:50:22.140 | flashed=0 alpha=0.000 enabled=True eyelids=False
+2026-04-23 03:53:37.433 | === startup ===
+2026-04-23 03:53:37.433 | script_dir=C:\Users\Drago\flashbangcolorchanger
+2026-04-23 03:53:38.440 | GSI listener bound 127.0.0.1:3000 (threaded)
+2026-04-23 03:53:39.639 | overlay ready vscreen=3840x2160@0,0 dpi=per-monitor-v2 gamma=0.65 max_alpha=0.95 debug_hud=True tick_ms=4 latency_probe=False
+2026-04-23 03:53:39.641 | self-test: ramping overlay up/down to prove it draws
+2026-04-23 03:53:41.045 | self-test complete

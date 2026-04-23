@@ -9,10 +9,13 @@ set "DEST2=%ProgramFiles%\Steam\steamapps\common\Counter-Strike Global Offensive
 set "DEST3=C:\Program Files (x86)\Steam\steamapps\common\Counter-Strike Global Offensive\game\csgo\cfg"
 set "DEST4=D:\SteamLibrary\steamapps\common\Counter-Strike Global Offensive\game\csgo\cfg"
 set "DEST5=E:\SteamLibrary\steamapps\common\Counter-Strike Global Offensive\game\csgo\cfg"
+set "DEST6=D:\games\steamapps\common\Counter-Strike Global Offensive\game\csgo\cfg"
+set "DEST7=D:\Steam\steamapps\common\Counter-Strike Global Offensive\game\csgo\cfg"
+set "DEST8=E:\Steam\steamapps\common\Counter-Strike Global Offensive\game\csgo\cfg"
 
 set "FOUND="
 
-for %%D in ("%DEST1%" "%DEST2%" "%DEST3%" "%DEST4%" "%DEST5%") do (
+for %%D in ("%DEST1%" "%DEST2%" "%DEST3%" "%DEST4%" "%DEST5%" "%DEST6%" "%DEST7%" "%DEST8%") do (
     if exist "%%~D\boot.vcfg" (
         set "FOUND=%%~D"
         goto :copy

@@ -128,14 +128,37 @@ class GSIHandler(BaseHTTPRequestHandler):
                 state.gsi_hits += 1
                 if flashed > state.peak_flash_since:
                     state.peak_flash_since = flashed
-                if state.gsi_hits == 1:
-                    log(f"first GSI payload received; flashed={flashed}")
+                hit_no = state.gsi_hits
+            # verbose logging: first 5 raw payloads, then every 200th
+            if hit_no <= 5:
+                provider = data.get("provider", {}).get("name", "?")
+                activity = data.get("player", {}).get("activity", "?")
+                player_state_keys = list(data.get("player", {}).get("state", {}).keys())
+                log(f"GSI hit #{hit_no}: provider={provider!r} activity={activity!r} "
+                    f"flashed={flashed} state_fields={player_state_keys}")
+            elif hit_no % 200 == 0:
+                log(f"GSI hit #{hit_no}: flashed={flashed} (periodic heartbeat log)")
         except Exception as e:
-            log(f"GSI parse error: {e!r}")
+            log(f"GSI parse error: {e!r} body[:200]={body[:200]!r}")
         try:
             self.send_response(200)
             self.send_header("Content-Length", "0")
             self.end_headers()
+        except Exception:
+            pass
+
+    def do_GET(self):
+        # let someone curl http://127.0.0.1:3000/ to see the tool is alive
+        try:
+            with state.lock:
+                msg = (f"gsi_flashdim alive; hits={state.gsi_hits} "
+                       f"last_flashed={state.flashed} "
+                       f"enabled={state.enabled} eyelids={state.eyelids}\n").encode()
+            self.send_response(200)
+            self.send_header("Content-Type", "text/plain")
+            self.send_header("Content-Length", str(len(msg)))
+            self.end_headers()
+            self.wfile.write(msg)
         except Exception:
             pass
 
