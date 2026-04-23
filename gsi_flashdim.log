@@ -1,0 +1,25 @@
+2026-04-23 03:44:40.870 | === startup ===
+2026-04-23 03:44:40.870 | script_dir=C:\Users\Drago\flashbangcolorchanger
+2026-04-23 03:44:41.532 | GSI listener bound 127.0.0.1:3000 (threaded)
+2026-04-23 03:44:42.631 | overlay ready vscreen=3840x2160@0,0 dpi=per-monitor-v2 gamma=0.65 max_alpha=0.95 debug_hud=False tick_ms=4 latency_probe=False
+2026-04-23 03:44:42.954 | first GSI payload received; flashed=255
+2026-04-23 03:44:42.961 | flashed=255 alpha=0.950 enabled=True eyelids=False
+2026-04-23 03:44:43.343 | flashed=238 alpha=0.908 enabled=True eyelids=False
+2026-04-23 03:44:43.390 | flashed=221 alpha=0.866 enabled=True eyelids=False
+2026-04-23 03:44:43.436 | flashed=204 alpha=0.822 enabled=True eyelids=False
+2026-04-23 03:44:43.480 | flashed=187 alpha=0.777 enabled=True eyelids=False
+2026-04-23 03:44:43.524 | flashed=170 alpha=0.730 enabled=True eyelids=False
+2026-04-23 03:44:43.555 | flashed=153 alpha=0.682 enabled=True eyelids=False
+2026-04-23 03:44:43.606 | flashed=136 alpha=0.631 enabled=True eyelids=False
+2026-04-23 03:44:43.637 | flashed=119 alpha=0.579 enabled=True eyelids=False
+2026-04-23 03:44:43.670 | flashed=102 alpha=0.524 enabled=True eyelids=False
+2026-04-23 03:44:43.711 | flashed=85 alpha=0.465 enabled=True eyelids=False
+2026-04-23 03:44:43.742 | flashed=68 alpha=0.402 enabled=True eyelids=False
+2026-04-23 03:44:43.790 | flashed=51 alpha=0.334 enabled=True eyelids=False
+2026-04-23 03:44:43.819 | flashed=34 alpha=0.256 enabled=True eyelids=False
+2026-04-23 03:44:43.867 | flashed=17 alpha=0.163 enabled=True eyelids=False
+2026-04-23 03:44:43.902 | flashed=0 alpha=0.000 enabled=True eyelids=False
+2026-04-23 03:45:57.266 | === startup ===
+2026-04-23 03:45:57.267 | script_dir=C:\Users\Drago\flashbangcolorchanger
+2026-04-23 03:45:57.883 | GSI listener bound 127.0.0.1:3000 (threaded)
+2026-04-23 03:45:58.741 | overlay ready vscreen=3840x2160@0,0 dpi=per-monitor-v2 gamma=0.65 max_alpha=0.95 debug_hud=False tick_ms=4 latency_probe=False

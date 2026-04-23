@@ -25,7 +25,7 @@ import os
 import threading
 import time
 import tkinter as tk
-from http.server import BaseHTTPRequestHandler, HTTPServer
+from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 SETTINGS_PATH = os.path.join(SCRIPT_DIR, "gsi_settings.ini")
@@ -41,6 +41,8 @@ DEFAULT_SETTINGS = {
         "DebugHud": "0",
         "HotkeyToggle": "F9",
         "HotkeyEyelids": "F10",
+        "TickMs": "4",
+        "LatencyProbe": "0",
     }
 }
 
@@ -93,16 +95,20 @@ class State:
         self.lock = threading.Lock()
         self.flashed = 0
         self.last_gsi_ts = 0.0
+        self.last_gsi_perf = 0.0   # perf_counter of last POST receive
         self.gsi_hits = 0
         self.enabled = True
         self.eyelids = False
         self.peak_flash_since = 0
+        self.applied_perf = 0.0    # perf_counter when current flashed value was applied to overlay
+        self.last_applied_flash = -1
 
 state = State()
 
 
 class GSIHandler(BaseHTTPRequestHandler):
     def do_POST(self):
+        t_in = time.perf_counter()
         try:
             length = int(self.headers.get("Content-Length", 0))
             body = self.rfile.read(length) if length else b""
@@ -116,6 +122,7 @@ class GSIHandler(BaseHTTPRequestHandler):
             with state.lock:
                 state.flashed = flashed
                 state.last_gsi_ts = time.time()
+                state.last_gsi_perf = t_in
                 state.gsi_hits += 1
                 if flashed > state.peak_flash_since:
                     state.peak_flash_since = flashed
@@ -136,8 +143,8 @@ class GSIHandler(BaseHTTPRequestHandler):
 
 def run_http_server(host, port):
     try:
-        srv = HTTPServer((host, port), GSIHandler)
-        log(f"GSI listener bound {host}:{port}")
+        srv = ThreadingHTTPServer((host, port), GSIHandler)
+        log(f"GSI listener bound {host}:{port} (threaded)")
         srv.serve_forever()
     except OSError as e:
         log(f"bind failed ({host}:{port}): {e!r}. another instance running?")
@@ -188,13 +195,32 @@ def set_dpi_aware():
         return "none"
 
 
+def boost_priority():
+    try:
+        winmm = ctypes.windll.winmm
+        winmm.timeBeginPeriod(1)
+    except Exception:
+        pass
+    try:
+        kernel32 = ctypes.windll.kernel32
+        ABOVE_NORMAL_PRIORITY_CLASS = 0x00008000
+        HIGH_PRIORITY_CLASS = 0x00000080
+        handle = kernel32.GetCurrentProcess()
+        kernel32.SetPriorityClass(handle, HIGH_PRIORITY_CLASS)
+    except Exception:
+        pass
+
+
 def run_overlay(settings):
     dpi_mode = set_dpi_aware()
+    boost_priority()
 
     gamma = float(settings.get("GammaCurve", "0.65"))
     max_alpha = float(settings.get("MaxAlpha", "0.95"))
     color = settings.get("OverlayColor", "#000000")
     debug_hud = settings.get("DebugHud", "0").strip().lower() not in ("0", "false", "no", "")
+    tick_ms = max(1, int(settings.get("TickMs", "4")))
+    latency_probe = settings.get("LatencyProbe", "0").strip().lower() not in ("0", "false", "no", "")
 
     SM_XVIRTUALSCREEN = 76
     SM_YVIRTUALSCREEN = 77
@@ -222,18 +248,23 @@ def run_overlay(settings):
         hud_label.place(x=40, y=40)
 
     log(f"overlay ready vscreen={vw}x{vh}@{vx},{vy} dpi={dpi_mode} "
-        f"gamma={gamma} max_alpha={max_alpha} debug_hud={debug_hud}")
+        f"gamma={gamma} max_alpha={max_alpha} debug_hud={debug_hud} tick_ms={tick_ms} "
+        f"latency_probe={latency_probe}")
 
     last_logged_flash = 0
 
     def tick():
         nonlocal last_logged_flash
+        t_tick = time.perf_counter()
         with state.lock:
             enabled = state.enabled
             eyelids = state.eyelids
             flashed = state.flashed
             last_ts = state.last_gsi_ts
+            last_perf = state.last_gsi_perf
             hits = state.gsi_hits
+            prev_applied = state.last_applied_flash
+            prev_applied_perf = state.applied_perf
 
         age = (time.time() - last_ts) if last_ts else 0.0
         if age > 2.0:
@@ -258,6 +289,18 @@ def run_overlay(settings):
         except tk.TclError:
             return
 
+        # latency probe: log the delay from GSI-receive to overlay-apply
+        # only when a NEW value arrives (prev_applied != flashed)
+        if latency_probe and flashed != prev_applied and last_perf > 0:
+            lag_ms = (t_tick - last_perf) * 1000.0
+            gap_ms = (t_tick - prev_applied_perf) * 1000.0 if prev_applied_perf else 0.0
+            log(f"probe flashed={prev_applied}->{flashed} alpha={alpha:.3f} "
+                f"recv_to_apply={lag_ms:.1f}ms since_last_apply={gap_ms:.1f}ms")
+
+        with state.lock:
+            state.last_applied_flash = flashed
+            state.applied_perf = t_tick
+
         if (flashed >= 8 and abs(flashed - last_logged_flash) >= 16) or \
            (flashed == 0 and last_logged_flash >= 8):
             log(f"flashed={flashed} alpha={alpha:.3f} enabled={enabled} eyelids={eyelids}")
@@ -270,7 +313,7 @@ def run_overlay(settings):
                       f"enabled={enabled} eyelids={eyelids}")
             )
 
-        root.after(8, tick)
+        root.after(tick_ms, tick)
 
     tick()
     try:

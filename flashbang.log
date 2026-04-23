@@ -41,3 +41,243 @@
 2026-04-23 03:39:25.894 | overlay hidden, resuming detection
 2026-04-23 03:39:25.026 | audio diag maxPeakSince=0.052 nowMax=0.021 nowMin=0.000 ratio=0.00 ch=8 audioConfirmed=no
 2026-04-23 03:39:56.322 | audio diag maxPeakSince=0.034 nowMax=0.000 nowMin=0.000 ratio=0.00 ch=8 audioConfirmed=no
+2026-04-23 03:39:57.485 | audio sustain broken after 141ms (maxPeak=0.306 droppedTo=0.039)
+2026-04-23 03:39:58.367 | audio diag maxPeakSince=0.306 nowMax=0.028 nowMin=0.000 ratio=0.00 ch=8 audioConfirmed=no
+2026-04-23 03:39:59.546 | AUDIO pass bangPeak=0.691 sustained=156ms nowPeak=0.185 ch=8
+2026-04-23 03:39:59.687 | DETECT visual 4-of-9 held 156ms
+2026-04-23 03:39:59.703 | DETECT initial=0% -> peak-hunt
+2026-04-23 03:40:00.429 | peak=0% after 520ms -> false positive, aborting
+2026-04-23 03:40:00.444 | overlay hidden, resuming detection
+2026-04-23 03:40:00.460 | AUDIO pass bangPeak=0.691 sustained=1094ms nowPeak=0.213 ch=8
+2026-04-23 03:40:00.460 | audio diag maxPeakSince=0.691 nowMax=0.213 nowMin=0.000 ratio=0.00 ch=8 audioConfirmed=YES
+2026-04-23 03:40:00.772 | audio sustain broken after 1406ms (maxPeak=0.691 droppedTo=0.037)
+2026-04-23 03:40:01.045 | AUDIO pass bangPeak=0.582 sustained=156ms nowPeak=0.496 ch=8
+2026-04-23 03:40:01.342 | audio sustain broken after 453ms (maxPeak=0.582 droppedTo=0.127)
+2026-04-23 03:40:01.952 | DETECT visual 4-of-9 held 156ms
+2026-04-23 03:40:01.952 | DETECT initial=0% -> peak-hunt
+2026-04-23 03:40:02.693 | peak=0% after 520ms -> false positive, aborting
+2026-04-23 03:40:02.693 | overlay hidden, resuming detection
+2026-04-23 03:40:02.709 | audio diag maxPeakSince=0.582 nowMax=0.025 nowMin=0.000 ratio=0.00 ch=8 audioConfirmed=YES
+2026-04-23 03:40:08.518 | audio diag maxPeakSince=0.029 nowMax=0.000 nowMin=0.000 ratio=0.00 ch=8 audioConfirmed=no
+2026-04-23 03:40:09.088 | AUDIO pass bangPeak=0.497 sustained=157ms nowPeak=0.170 ch=8
+2026-04-23 03:40:09.244 | audio sustain broken after 313ms (maxPeak=0.497 droppedTo=0.075)
+2026-04-23 03:40:09.681 | AUDIO pass bangPeak=0.507 sustained=140ms nowPeak=0.507 ch=8
+2026-04-23 03:40:10.111 | AUDIO pass bangPeak=0.507 sustained=594ms nowPeak=0.180 ch=8
+2026-04-23 03:40:10.564 | AUDIO pass bangPeak=0.559 sustained=1047ms nowPeak=0.252 ch=8
+2026-04-23 03:40:10.564 | audio diag maxPeakSince=0.559 nowMax=0.252 nowMin=0.000 ratio=0.00 ch=8 audioConfirmed=YES
+2026-04-23 03:40:10.720 | audio sustain broken after 1203ms (maxPeak=0.559 droppedTo=0.071)
+2026-04-23 03:40:11.290 | AUDIO pass bangPeak=0.513 sustained=157ms nowPeak=0.212 ch=8
+2026-04-23 03:40:11.587 | audio sustain broken after 454ms (maxPeak=0.513 droppedTo=0.158)
+2026-04-23 03:40:12.883 | audio sustain broken after 140ms (maxPeak=0.513 droppedTo=0.145)
+2026-04-23 03:40:12.172 | AUDIO pass bangPeak=0.506 sustained=156ms nowPeak=0.486 ch=8
+2026-04-23 03:40:12.469 | audio sustain broken after 453ms (maxPeak=0.506 droppedTo=0.074)
+2026-04-23 03:40:12.609 | audio diag maxPeakSince=0.513 nowMax=0.076 nowMin=0.000 ratio=0.00 ch=8 audioConfirmed=YES
+2026-04-23 03:40:13.335 | AUDIO pass bangPeak=0.834 sustained=140ms nowPeak=0.565 ch=8
+2026-04-23 03:40:13.492 | audio sustain broken after 297ms (maxPeak=0.834 droppedTo=0.145)
+2026-04-23 03:40:14.789 | audio sustain broken after 157ms (maxPeak=0.353 droppedTo=0.063)
+2026-04-23 03:40:14.374 | AUDIO pass bangPeak=0.811 sustained=156ms nowPeak=0.262 ch=8
+2026-04-23 03:40:14.515 | audio sustain broken after 297ms (maxPeak=0.811 droppedTo=0.026)
+2026-04-23 03:40:15.671 | audio diag maxPeakSince=0.834 nowMax=0.102 nowMin=0.000 ratio=0.00 ch=8 audioConfirmed=YES
+2026-04-23 03:41:05.111 | audio diag maxPeakSince=0.264 nowMax=0.000 nowMin=0.000 ratio=0.00 ch=8 audioConfirmed=no
+2026-04-23 03:41:07.157 | AUDIO pass bangPeak=0.753 sustained=156ms nowPeak=0.213 ch=8
+2026-04-23 03:41:07.157 | audio diag maxPeakSince=0.753 nowMax=0.213 nowMin=0.000 ratio=0.00 ch=8 audioConfirmed=YES
+2026-04-23 03:41:08.610 | AUDIO pass bangPeak=0.753 sustained=609ms nowPeak=0.166 ch=8
+2026-04-23 03:41:08.024 | AUDIO pass bangPeak=0.753 sustained=1047ms nowPeak=0.218 ch=8
+2026-04-23 03:41:08.180 | audio sustain broken after 1203ms (maxPeak=0.753 droppedTo=0.163)
+2026-04-23 03:41:09.649 | DETECT visual 4-of-9 held 94ms
+2026-04-23 03:41:09.649 | DETECT initial=0% -> peak-hunt
+2026-04-23 03:41:10.375 | peak=0% after 520ms -> false positive, aborting
+2026-04-23 03:41:10.375 | overlay hidden, resuming detection
+2026-04-23 03:43:00.901 | audio sustain broken after 111016ms (maxPeak=0.404 droppedTo=0.000)
+2026-04-23 03:43:00.901 | audio diag maxPeakSince=0.404 nowMax=0.000 nowMin=0.000 ratio=0.00 ch=8 audioConfirmed=no
+2026-04-23 03:43:00.470 | AUDIO pass bangPeak=0.485 sustained=156ms nowPeak=0.485 ch=8
+2026-04-23 03:43:00.627 | audio sustain broken after 313ms (maxPeak=0.485 droppedTo=0.114)
+2026-04-23 03:43:01.196 | AUDIO pass bangPeak=0.492 sustained=156ms nowPeak=0.492 ch=8
+2026-04-23 03:43:01.353 | audio sustain broken after 313ms (maxPeak=0.492 droppedTo=0.090)
+2026-04-23 03:43:01.493 | DETECT visual 4-of-9 held 157ms
+2026-04-23 03:43:01.493 | DETECT initial=0% -> peak-hunt
+2026-04-23 03:43:02.219 | peak=0% after 520ms -> false positive, aborting
+2026-04-23 03:43:02.219 | overlay hidden, resuming detection
+2026-04-23 03:43:02.250 | audio diag maxPeakSince=0.492 nowMax=0.027 nowMin=0.000 ratio=0.00 ch=8 audioConfirmed=YES
+2026-04-23 03:43:03.117 | audio sustain broken after 156ms (maxPeak=0.499 droppedTo=0.156)
+2026-04-23 03:43:04.867 | audio sustain broken after 156ms (maxPeak=0.489 droppedTo=0.140)
+2026-04-23 03:43:04.296 | audio sustain broken after 156ms (maxPeak=0.529 droppedTo=0.126)
+2026-04-23 03:43:04.296 | audio diag maxPeakSince=0.529 nowMax=0.126 nowMin=0.000 ratio=0.00 ch=8 audioConfirmed=no
+2026-04-23 03:43:05.749 | audio sustain broken after 141ms (maxPeak=0.494 droppedTo=0.155)
+2026-04-23 03:43:05.163 | audio sustain broken after 141ms (maxPeak=0.490 droppedTo=0.142)
+2026-04-23 03:43:05.616 | AUDIO pass bangPeak=0.499 sustained=156ms nowPeak=0.200 ch=8
+2026-04-23 03:43:06.772 | audio sustain broken after 312ms (maxPeak=0.499 droppedTo=0.072)
+2026-04-23 03:43:06.045 | AUDIO pass bangPeak=0.505 sustained=156ms nowPeak=0.169 ch=8
+2026-04-23 03:43:06.186 | audio sustain broken after 297ms (maxPeak=0.505 droppedTo=0.105)
+2026-04-23 03:43:06.342 | audio diag maxPeakSince=0.505 nowMax=0.039 nowMin=0.000 ratio=0.00 ch=8 audioConfirmed=YES
+2026-04-23 03:43:07.639 | AUDIO pass bangPeak=0.480 sustained=141ms nowPeak=0.480 ch=8
+2026-04-23 03:43:07.068 | AUDIO pass bangPeak=0.872 sustained=594ms nowPeak=0.177 ch=8
+2026-04-23 03:43:07.224 | audio sustain broken after 750ms (maxPeak=0.872 droppedTo=0.140)
+2026-04-23 03:43:08.247 | AUDIO pass bangPeak=0.488 sustained=156ms nowPeak=0.368 ch=8
+2026-04-23 03:43:08.403 | audio sustain broken after 297ms (maxPeak=0.488 droppedTo=0.049)
+2026-04-23 03:43:08.403 | audio diag maxPeakSince=0.872 nowMax=0.049 nowMin=0.000 ratio=0.00 ch=8 audioConfirmed=YES
+2026-04-23 03:43:09.114 | AUDIO pass bangPeak=0.761 sustained=141ms nowPeak=0.530 ch=8
+2026-04-23 03:43:09.270 | audio sustain broken after 297ms (maxPeak=0.761 droppedTo=0.054)
+2026-04-23 03:43:10.1020 | AUDIO pass bangPeak=0.900 sustained=156ms nowPeak=0.690 ch=8
+2026-04-23 03:43:10.152 | audio sustain broken after 312ms (maxPeak=0.900 droppedTo=0.091)
+2026-04-23 03:43:10.449 | audio diag maxPeakSince=0.900 nowMax=0.027 nowMin=0.000 ratio=0.00 ch=8 audioConfirmed=YES
+2026-04-23 03:43:11.175 | AUDIO pass bangPeak=0.551 sustained=156ms nowPeak=0.295 ch=8
+2026-04-23 03:43:11.331 | audio sustain broken after 297ms (maxPeak=0.551 droppedTo=0.024)
+2026-04-23 03:43:13.495 | DETECT visual 4-of-9 held 156ms
+2026-04-23 03:43:13.495 | DETECT initial=0% -> peak-hunt
+2026-04-23 03:43:13.236 | peak=0% after 520ms -> false positive, aborting
+2026-04-23 03:43:13.252 | overlay hidden, resuming detection
+2026-04-23 03:43:13.252 | audio diag maxPeakSince=0.551 nowMax=0.084 nowMin=0.000 ratio=0.00 ch=8 audioConfirmed=no
+2026-04-23 03:43:15.822 | AUDIO pass bangPeak=0.495 sustained=156ms nowPeak=0.174 ch=8
+2026-04-23 03:43:15.962 | audio sustain broken after 296ms (maxPeak=0.495 droppedTo=0.051)
+2026-04-23 03:43:15.251 | audio diag maxPeakSince=0.495 nowMax=0.020 nowMin=0.000 ratio=0.00 ch=8 audioConfirmed=YES
+2026-04-23 03:43:16.274 | AUDIO pass bangPeak=0.744 sustained=156ms nowPeak=0.175 ch=8
+2026-04-23 03:43:17.414 | audio sustain broken after 296ms (maxPeak=0.744 droppedTo=0.057)
+2026-04-23 03:43:17.727 | AUDIO pass bangPeak=0.581 sustained=156ms nowPeak=0.210 ch=8
+2026-04-23 03:43:17.000 | DETECT visual 4-of-9 held 141ms
+2026-04-23 03:43:17.000 | DETECT initial=0% -> peak-hunt
+2026-04-23 03:43:18.750 | peak=0% after 520ms -> false positive, aborting
+2026-04-23 03:43:18.750 | overlay hidden, resuming detection
+2026-04-23 03:43:18.781 | audio sustain broken after 1234ms (maxPeak=0.581 droppedTo=0.102)
+2026-04-23 03:43:18.781 | audio diag maxPeakSince=0.744 nowMax=0.102 nowMin=0.000 ratio=0.00 ch=8 audioConfirmed=YES
+2026-04-23 03:43:23.043 | audio diag maxPeakSince=0.000 nowMax=0.000 nowMin=0.000 ratio=0.00 ch=8 audioConfirmed=no
+2026-04-23 03:43:24.066 | AUDIO pass bangPeak=0.488 sustained=156ms nowPeak=0.488 ch=8
+2026-04-23 03:43:25.207 | audio sustain broken after 297ms (maxPeak=0.488 droppedTo=0.097)
+2026-04-23 03:43:25.519 | AUDIO pass bangPeak=0.485 sustained=156ms nowPeak=0.485 ch=8
+2026-04-23 03:43:25.816 | audio sustain broken after 453ms (maxPeak=0.501 droppedTo=0.160)
+2026-04-23 03:43:25.089 | AUDIO pass bangPeak=0.529 sustained=156ms nowPeak=0.529 ch=8
+2026-04-23 03:43:25.089 | audio diag maxPeakSince=0.529 nowMax=0.529 nowMin=0.000 ratio=0.00 ch=8 audioConfirmed=YES
+2026-04-23 03:43:26.542 | AUDIO pass bangPeak=0.762 sustained=609ms nowPeak=0.233 ch=8
+2026-04-23 03:43:26.683 | audio sustain broken after 750ms (maxPeak=0.762 droppedTo=0.065)
+2026-04-23 03:43:26.112 | AUDIO pass bangPeak=0.553 sustained=156ms nowPeak=0.270 ch=8
+2026-04-23 03:43:27.268 | audio sustain broken after 312ms (maxPeak=0.553 droppedTo=0.148)
+2026-04-23 03:43:27.1018 | audio sustain broken after 312ms (maxPeak=0.324 droppedTo=0.087)
+2026-04-23 03:43:28.135 | audio diag maxPeakSince=0.762 nowMax=0.221 nowMin=0.000 ratio=0.00 ch=8 audioConfirmed=YES
+2026-04-23 03:43:30.134 | audio diag maxPeakSince=0.115 nowMax=0.024 nowMin=0.000 ratio=0.00 ch=8 audioConfirmed=no
+2026-04-23 03:43:30.868 | AUDIO pass bangPeak=0.546 sustained=141ms nowPeak=0.546 ch=8
+2026-04-23 03:43:31.157 | AUDIO pass bangPeak=0.546 sustained=454ms nowPeak=0.502 ch=8
+2026-04-23 03:43:31.594 | AUDIO pass bangPeak=0.546 sustained=891ms nowPeak=0.524 ch=8
+2026-04-23 03:43:31.907 | AUDIO pass bangPeak=0.546 sustained=1204ms nowPeak=0.279 ch=8
+2026-04-23 03:43:32.023 | audio sustain broken after 1344ms (maxPeak=0.546 droppedTo=0.075)
+2026-04-23 03:43:32.179 | audio diag maxPeakSince=0.546 nowMax=0.050 nowMin=0.000 ratio=0.00 ch=8 audioConfirmed=YES
+2026-04-23 03:43:32.476 | AUDIO pass bangPeak=0.744 sustained=156ms nowPeak=0.419 ch=8
+2026-04-23 03:43:32.633 | audio sustain broken after 313ms (maxPeak=0.744 droppedTo=0.034)
+2026-04-23 03:43:33.655 | DETECT visual 4-of-9 held 140ms
+2026-04-23 03:43:33.655 | DETECT initial=0% -> peak-hunt
+2026-04-23 03:43:34.397 | peak=0% after 520ms -> false positive, aborting
+2026-04-23 03:43:34.397 | overlay hidden, resuming detection
+2026-04-23 03:43:34.428 | audio diag maxPeakSince=0.744 nowMax=0.497 nowMin=0.000 ratio=0.00 ch=8 audioConfirmed=no
+2026-04-23 03:43:34.569 | AUDIO pass bangPeak=0.497 sustained=141ms nowPeak=0.488 ch=8
+2026-04-23 03:43:34.710 | DETECT visual 4-of-9 held 141ms
+2026-04-23 03:43:34.725 | DETECT initial=0% -> peak-hunt
+2026-04-23 03:43:35.451 | peak=0% after 520ms -> false positive, aborting
+2026-04-23 03:43:35.467 | overlay hidden, resuming detection
+2026-04-23 03:43:35.482 | audio sustain broken after 1078ms (maxPeak=0.497 droppedTo=0.072)
+2026-04-23 03:43:35.639 | DETECT visual 4-of-9 held 79ms
+2026-04-23 03:43:35.639 | DETECT initial=0% -> peak-hunt
+2026-04-23 03:43:36.380 | peak=0% after 520ms -> false positive, aborting
+2026-04-23 03:43:36.380 | overlay hidden, resuming detection
+2026-04-23 03:43:36.412 | audio diag maxPeakSince=0.488 nowMax=0.405 nowMin=0.000 ratio=0.00 ch=8 audioConfirmed=YES
+2026-04-23 03:43:36.552 | AUDIO pass bangPeak=0.833 sustained=140ms nowPeak=0.833 ch=8
+2026-04-23 03:43:36.693 | DETECT visual 4-of-9 held 140ms
+2026-04-23 03:43:36.708 | DETECT initial=0% -> peak-hunt
+2026-04-23 03:43:37.419 | peak=0% after 520ms -> false positive, aborting
+2026-04-23 03:43:37.434 | overlay hidden, resuming detection
+2026-04-23 03:43:37.450 | audio sustain broken after 1062ms (maxPeak=0.833 droppedTo=0.074)
+2026-04-23 03:43:37.747 | DETECT visual 4-of-9 held 141ms
+2026-04-23 03:43:37.747 | DETECT initial=0% -> peak-hunt
+2026-04-23 03:43:38.473 | peak=0% after 520ms -> false positive, aborting
+2026-04-23 03:43:38.473 | overlay hidden, resuming detection
+2026-04-23 03:43:38.489 | audio diag maxPeakSince=0.833 nowMax=0.109 nowMin=0.000 ratio=0.00 ch=8 audioConfirmed=YES
+2026-04-23 03:43:38.723 | DETECT visual 4-of-9 held 78ms
+2026-04-23 03:43:38.723 | DETECT initial=0% -> peak-hunt
+2026-04-23 03:43:39.465 | peak=0% after 520ms -> false positive, aborting
+2026-04-23 03:43:39.465 | overlay hidden, resuming detection
+2026-04-23 03:43:40.503 | DETECT visual 4-of-9 held 141ms
+2026-04-23 03:43:40.503 | DETECT initial=0% -> peak-hunt
+2026-04-23 03:43:41.229 | peak=0% after 520ms -> false positive, aborting
+2026-04-23 03:43:41.229 | overlay hidden, resuming detection
+2026-04-23 03:43:41.260 | audio diag maxPeakSince=0.209 nowMax=0.016 nowMin=0.000 ratio=0.00 ch=8 audioConfirmed=no
+2026-04-23 03:43:41.432 | DETECT visual 4-of-9 held 78ms
+2026-04-23 03:43:41.432 | DETECT initial=0% -> peak-hunt
+2026-04-23 03:43:42.158 | peak=0% after 520ms -> false positive, aborting
+2026-04-23 03:43:42.158 | overlay hidden, resuming detection
+2026-04-23 03:43:42.330 | DETECT visual 4-of-9 held 78ms
+2026-04-23 03:43:42.346 | DETECT initial=0% -> peak-hunt
+2026-04-23 03:43:43.087 | peak=0% after 520ms -> false positive, aborting
+2026-04-23 03:43:43.087 | overlay hidden, resuming detection
+2026-04-23 03:43:43.259 | DETECT visual 4-of-9 held 78ms
+2026-04-23 03:43:43.259 | DETECT initial=0% -> peak-hunt
+2026-04-23 03:43:44.1009 | peak=0% after 520ms -> false positive, aborting
+2026-04-23 03:43:44.001 | overlay hidden, resuming detection
+2026-04-23 03:43:44.016 | audio diag maxPeakSince=0.014 nowMax=0.011 nowMin=0.000 ratio=0.00 ch=8 audioConfirmed=no
+2026-04-23 03:43:44.173 | DETECT visual 4-of-9 held 79ms
+2026-04-23 03:43:44.173 | DETECT initial=0% -> peak-hunt
+2026-04-23 03:43:45.938 | peak=0% after 520ms -> false positive, aborting
+2026-04-23 03:43:45.938 | overlay hidden, resuming detection
+2026-04-23 03:44:10.080 | audio diag maxPeakSince=0.013 nowMax=0.000 nowMin=0.000 ratio=0.00 ch=8 audioConfirmed=no
+2026-04-23 03:44:11.252 | DETECT visual 4-of-9 held 94ms
+2026-04-23 03:44:11.252 | DETECT initial=0% -> peak-hunt
+2026-04-23 03:44:11.1017 | peak=0% after 520ms -> false positive, aborting
+2026-04-23 03:44:11.1017 | overlay hidden, resuming detection
+2026-04-23 03:44:12.181 | DETECT visual 4-of-9 held 62ms
+2026-04-23 03:44:12.181 | DETECT initial=0% -> peak-hunt
+2026-04-23 03:44:12.947 | peak=0% after 520ms -> false positive, aborting
+2026-04-23 03:44:12.947 | overlay hidden, resuming detection
+2026-04-23 03:44:13.110 | DETECT visual 4-of-9 held 78ms
+2026-04-23 03:44:13.110 | DETECT initial=0% -> peak-hunt
+2026-04-23 03:44:13.860 | peak=0% after 520ms -> false positive, aborting
+2026-04-23 03:44:13.860 | overlay hidden, resuming detection
+2026-04-23 03:44:13.876 | audio diag maxPeakSince=0.018 nowMax=0.014 nowMin=0.000 ratio=0.00 ch=8 audioConfirmed=no
+2026-04-23 03:44:13.008 | DETECT visual 4-of-9 held 78ms
+2026-04-23 03:44:13.008 | DETECT initial=0% -> peak-hunt
+2026-04-23 03:44:14.774 | peak=0% after 520ms -> false positive, aborting
+2026-04-23 03:44:14.789 | overlay hidden, resuming detection
+2026-04-23 03:44:24.299 | audio diag maxPeakSince=0.014 nowMax=0.001 nowMin=0.000 ratio=0.00 ch=8 audioConfirmed=no
+2026-04-23 03:44:24.455 | DETECT visual 4-of-9 held 78ms
+2026-04-23 03:44:24.455 | DETECT initial=0% -> peak-hunt
+2026-04-23 03:44:25.197 | peak=0% after 520ms -> false positive, aborting
+2026-04-23 03:44:25.197 | overlay hidden, resuming detection
+2026-04-23 03:44:25.385 | DETECT visual 4-of-9 held 63ms
+2026-04-23 03:44:25.385 | DETECT initial=0% -> peak-hunt
+2026-04-23 03:44:26.111 | peak=0% after 520ms -> false positive, aborting
+2026-04-23 03:44:26.111 | overlay hidden, resuming detection
+2026-04-23 03:44:26.298 | DETECT visual 4-of-9 held 62ms
+2026-04-23 03:44:26.298 | DETECT initial=0% -> peak-hunt
+2026-04-23 03:44:27.040 | peak=0% after 520ms -> false positive, aborting
+2026-04-23 03:44:27.040 | overlay hidden, resuming detection
+2026-04-23 03:44:27.055 | audio diag maxPeakSince=0.022 nowMax=0.011 nowMin=0.000 ratio=0.00 ch=8 audioConfirmed=no
+2026-04-23 03:44:27.212 | DETECT visual 4-of-9 held 78ms
+2026-04-23 03:44:27.227 | DETECT initial=0% -> peak-hunt
+2026-04-23 03:44:28.977 | peak=0% after 520ms -> false positive, aborting
+2026-04-23 03:44:28.993 | overlay hidden, resuming detection
+2026-04-23 03:44:28.141 | DETECT visual 4-of-9 held 79ms
+2026-04-23 03:44:28.141 | DETECT initial=0% -> peak-hunt
+2026-04-23 03:44:29.906 | peak=0% after 520ms -> false positive, aborting
+2026-04-23 03:44:29.906 | overlay hidden, resuming detection
+2026-04-23 03:44:29.070 | DETECT visual 4-of-9 held 78ms
+2026-04-23 03:44:29.070 | DETECT initial=0% -> peak-hunt
+2026-04-23 03:44:30.835 | peak=0% after 520ms -> false positive, aborting
+2026-04-23 03:44:30.851 | overlay hidden, resuming detection
+2026-04-23 03:44:44.304 | audio diag maxPeakSince=0.013 nowMax=0.000 nowMin=0.000 ratio=0.00 ch=8 audioConfirmed=no
+2026-04-23 03:44:45.460 | DETECT visual 4-of-9 held 78ms
+2026-04-23 03:44:45.475 | DETECT initial=0% -> peak-hunt
+2026-04-23 03:44:45.123 | peak=0% after 520ms -> false positive, aborting
+2026-04-23 03:44:45.123 | overlay hidden, resuming detection
+2026-04-23 03:44:45.280 | DETECT visual 4-of-9 held 78ms
+2026-04-23 03:44:46.295 | DETECT initial=0% -> peak-hunt
+2026-04-23 03:44:47.412 | peak=0% after 520ms -> false positive, aborting
+2026-04-23 03:44:47.412 | overlay hidden, resuming detection
+2026-04-23 03:44:47.443 | audio diag maxPeakSince=0.014 nowMax=0.011 nowMin=0.000 ratio=0.00 ch=8 audioConfirmed=no
+2026-04-23 03:44:47.599 | DETECT visual 4-of-9 held 63ms
+2026-04-23 03:44:47.599 | DETECT initial=0% -> peak-hunt
+2026-04-23 03:44:48.341 | peak=0% after 520ms -> false positive, aborting
+2026-04-23 03:44:48.341 | overlay hidden, resuming detection
+2026-04-23 03:44:48.497 | DETECT visual 4-of-9 held 62ms
+2026-04-23 03:44:48.513 | DETECT initial=0% -> peak-hunt
+2026-04-23 03:44:49.223 | peak=0% after 520ms -> false positive, aborting
+2026-04-23 03:44:49.239 | overlay hidden, resuming detection
+2026-04-23 03:44:49.411 | DETECT visual 4-of-9 held 79ms
+2026-04-23 03:44:49.411 | DETECT initial=0% -> peak-hunt
+2026-04-23 03:44:49.137 | peak=0% after 520ms -> false positive, aborting
+2026-04-23 03:44:49.137 | overlay hidden, resuming detection
