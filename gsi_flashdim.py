@@ -37,7 +37,25 @@ try:
 except Exception:
     pass
 
-SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
+def _user_dir():
+    # Next to the .exe when frozen (PyInstaller onefile/onedir) so the user
+    # can find settings/log. Next to the .py otherwise.
+    if getattr(sys, "frozen", False):
+        return os.path.dirname(os.path.abspath(sys.executable))
+    return os.path.dirname(os.path.abspath(__file__))
+
+
+def _resource_dir():
+    # Where bundled resources (flashdim_hot.dll) live at runtime.
+    # PyInstaller onefile extracts to sys._MEIPASS; onedir sets it to the
+    # internal dir; unfrozen scripts read siblings of the .py.
+    meipass = getattr(sys, "_MEIPASS", None)
+    if meipass:
+        return meipass
+    return _user_dir()
+
+
+SCRIPT_DIR = _user_dir()
 SETTINGS_PATH = os.path.join(SCRIPT_DIR, "gsi_settings.ini")
 LOG_PATH = os.path.join(SCRIPT_DIR, "gsi_flashdim.log")
 
@@ -170,8 +188,7 @@ _hot = None
 _hot_load_err = None
 _hot_ring_ready = False
 try:
-    _hot_dll_path = os.path.join(os.path.dirname(os.path.abspath(__file__)),
-                                 "flashdim_hot.dll")
+    _hot_dll_path = os.path.join(_resource_dir(), "flashdim_hot.dll")
     _hot = ctypes.CDLL(_hot_dll_path)
     _hot.hot_init.argtypes = (ctypes.c_float, ctypes.c_uint16)
     _hot.hot_init.restype = ctypes.c_int
