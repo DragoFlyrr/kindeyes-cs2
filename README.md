@@ -28,7 +28,7 @@ Two independent implementations live in this repo. Pick one:
 Uses Valve's official Game State Integration. CS2 pushes `player.state.flashed` (0-255) to a local HTTP listener; overlay alpha is scaled directly from that value. No pixel sampling, no false positives, no bucketed severity profiles.
 
 **Dev setup:**
-1. Run `setup.bat` once (auto-detects Steam via registry + `libraryfolders.vdf`, copies the GSI cfg). Falls back to `install_gsi_cfg.bat` if you prefer the hardcoded-paths version.
+1. Run `setup.bat` once (auto-detects Steam via registry + `libraryfolders.vdf`, copies the GSI cfg).
 2. Run `run_gsi.bat` to start the overlay in source mode (uses `pythonw.exe`). Leave it running in the background.
 3. Launch CS2 in **fullscreen-windowed** or **borderless**.
 
@@ -57,7 +57,7 @@ Produces `flashdim-release.zip` with `flashdim.exe`, `_internal/`, `setup.bat`, 
 - `run_gsi.bat` / `stop_gsi.bat` — launcher / stopper (launcher also works with a built `flashdim.exe`)
 - `setup.bat` / `setup.ps1` — registry-aware installer (finds any Steam library), creates shortcut, optional auto-start
 - `build_release.ps1` — PyInstaller bundle + zip for end users
-- `install_gsi_cfg.bat` — legacy hardcoded-paths installer
+- `dump_full.py` — debug tool for inspecting raw GSI payloads
 - `gsi_settings.ini` — tunables (auto-created)
 - `gsi_flashdim.log` — diagnostic log
 
