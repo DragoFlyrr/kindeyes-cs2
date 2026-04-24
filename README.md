@@ -6,7 +6,7 @@ CS2 accessibility tool — darkens the screen during flashbangs for players with
 
 ## Quick install (end users)
 
-1. Download `flashdim-release.zip` from the Releases page.
+1. **[Download `flashdim-release.zip`](https://github.com/DragoFlyrr/kindeyes-cs2/releases/latest/download/flashdim-release.zip)** (or browse [all releases](https://github.com/DragoFlyrr/kindeyes-cs2/releases)).
 2. Right-click the zip → **Extract All** (anywhere permanent — Documents, Desktop — but **not** inside the zip viewer).
 3. Double-click **`setup.bat`**. It finds CS2 via the Steam registry, copies one config file, and makes a desktop shortcut.
 4. Double-click the new **flashdim** desktop shortcut. Throw a flashbang in CS2 — screen dims for ~5s.
