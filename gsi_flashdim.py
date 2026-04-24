@@ -297,6 +297,7 @@ _prev_flashed = 0
 _mag_profile_start = 0.0
 _mag_profile_active = False
 _mag_profile_audio_only = False
+_profile_saw_gsi = False
 g_audio_ring_min = 0.0
 g_audio_ring_ratio = 0.0
 _last_applied = 1.0
@@ -386,7 +387,7 @@ def finish_gsi_conn(conn, prebuf, prebuf_n, t_start, snap_perf,
             flashed = 0
         elif flashed > 255:
             flashed = 255
-        global _prev_flashed, _mag_profile_start, _mag_profile_active, _mag_profile_audio_only, _last_applied
+        global _prev_flashed, _mag_profile_start, _mag_profile_active, _mag_profile_audio_only, _last_applied, _profile_saw_gsi
         prev = _prev_flashed
         triggered = False
         with state.lock:
@@ -415,6 +416,7 @@ def finish_gsi_conn(conn, prebuf, prebuf_n, t_start, snap_perf,
                 _mag_profile_start = t_post
                 _mag_profile_active = True
                 _mag_profile_audio_only = False
+                _profile_saw_gsi = False
                 _last_applied = _min_brightness
                 log(f"flash trigger: GSI flashed={flashed} -> snap POST-PARSE "
                     f"(lag_from_conn_start={(t_post - t_start)*1000:.3f}ms, "
@@ -554,7 +556,7 @@ def run_unified_loop(settings, host, port):
 
     global _min_brightness, _mag_profile_start, _mag_profile_active, _mag_profile_audio_only
     global _last_applied, _prev_flashed, _last_scan_us, _last_magset_us
-    global _gamma_revert_deadline
+    global _gamma_revert_deadline, _profile_saw_gsi
     _min_brightness = max(0.0, min(1.0, 1.0 - max_alpha))
     _EFFECT_DARK.transform[0] = _min_brightness
     _EFFECT_DARK.transform[6] = _min_brightness
@@ -800,6 +802,7 @@ def run_unified_loop(settings, host, port):
                         _mag_profile_start = perf_counter() - (r.t_reply_ns / 1_000_000_000.0)
                         _mag_profile_active = True
                         _mag_profile_audio_only = False
+                        _profile_saw_gsi = False
                         _last_applied = _min_brightness
                         _last_scan_us = scan_us
                         _last_magset_us = magset_us
@@ -909,6 +912,7 @@ def run_unified_loop(settings, host, port):
                         _mag_profile_start = perf_counter()
                         _mag_profile_active = True
                         _mag_profile_audio_only = True
+                        _profile_saw_gsi = False
                         _last_applied = _min_brightness
                         _audio_primes_total += 1
                         _audio_last_prime_log = perf_counter()
@@ -954,6 +958,7 @@ def run_unified_loop(settings, host, port):
                         _mag_profile_start = perf_counter()
                         _mag_profile_active = True
                         _mag_profile_audio_only = False
+                        _profile_saw_gsi = False
                         _last_applied = _min_brightness
                         _last_scan_us = scn_us
                         _last_magset_us = mag_us
@@ -1041,6 +1046,7 @@ def run_unified_loop(settings, host, port):
                                 _mag_profile_start = t_post
                                 _mag_profile_active = True
                                 _mag_profile_audio_only = False
+                                _profile_saw_gsi = False
                                 _last_applied = _min_brightness
                                 _last_scan_us = scan_us
                                 _last_magset_us = magset_us
@@ -1075,8 +1081,16 @@ def run_unified_loop(settings, host, port):
             age = (time.time() - last_ts) if last_ts else 0.0
             effective_flash = 0 if age > 2.0 else gsi_flashed
 
+            # GSI's `flashed` field already encodes angle-correct decay
+            # (255 head-on, lower from wider angles, and the fade is faster
+            # at wider angles). Once GSI is confirming the flash, follow it
+            # directly instead of overlaying a fixed-duration synth curve.
             synth_flash = 0
-            if synth_profile and _mag_profile_active:
+            gsi_fresh = (age < 0.5 and gsi_flashed > 0)
+            if gsi_fresh and _mag_profile_active:
+                _profile_saw_gsi = True
+
+            if synth_profile and _mag_profile_active and not _profile_saw_gsi:
                 elapsed = t_tick - _mag_profile_start
                 # Audio-only fires use a short bridge; if GSI/visual later
                 # confirms it's a real flash, they extend via full profile.
@@ -1090,6 +1104,13 @@ def run_unified_loop(settings, host, port):
                     synth_flash = 0
                     _mag_profile_active = False
                     _mag_profile_audio_only = False
+
+            # When GSI is driving, end the profile as soon as it reports 0.
+            if _mag_profile_active and _profile_saw_gsi:
+                if effective_flash <= 0 and (t_tick - _mag_profile_start) > 0.1:
+                    _mag_profile_active = False
+                    _mag_profile_audio_only = False
+                    _profile_saw_gsi = False
 
             drive_flash = max(effective_flash, synth_flash)
 
