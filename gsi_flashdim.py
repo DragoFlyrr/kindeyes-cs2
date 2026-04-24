@@ -1081,16 +1081,16 @@ def run_unified_loop(settings, host, port):
             age = (time.time() - last_ts) if last_ts else 0.0
             effective_flash = 0 if age > 2.0 else gsi_flashed
 
-            # GSI's `flashed` field already encodes angle-correct decay
-            # (255 head-on, lower from wider angles, and the fade is faster
-            # at wider angles). Once GSI is confirming the flash, follow it
-            # directly instead of overlaying a fixed-duration synth curve.
+            # Synth profile guarantees visibility for accessibility (real CS2
+            # often reports `flashed=1` at trigger time, which by itself is
+            # nearly invisible). GSI is used to END the profile early for
+            # wide-angle flashes that resolve in well under the synth total.
             synth_flash = 0
             gsi_fresh = (age < 0.5 and gsi_flashed > 0)
             if gsi_fresh and _mag_profile_active:
                 _profile_saw_gsi = True
 
-            if synth_profile and _mag_profile_active and not _profile_saw_gsi:
+            if synth_profile and _mag_profile_active:
                 elapsed = t_tick - _mag_profile_start
                 # Audio-only fires use a short bridge; if GSI/visual later
                 # confirms it's a real flash, they extend via full profile.
@@ -1104,13 +1104,20 @@ def run_unified_loop(settings, host, port):
                     synth_flash = 0
                     _mag_profile_active = False
                     _mag_profile_audio_only = False
+                    _profile_saw_gsi = False
 
-            # When GSI is driving, end the profile as soon as it reports 0.
+            # Angle-correct shortening: once GSI has confirmed the flash
+            # and then reports 0 for the CS2-configured grace window, the
+            # flash is over — kill the synth early. 0.3s grace survives
+            # a single dropped GSI packet while still reliably catching
+            # the 0.95s wide-angle decay.
             if _mag_profile_active and _profile_saw_gsi:
-                if effective_flash <= 0 and (t_tick - _mag_profile_start) > 0.1:
+                elapsed = t_tick - _mag_profile_start
+                if effective_flash <= 0 and elapsed > 0.3:
                     _mag_profile_active = False
                     _mag_profile_audio_only = False
                     _profile_saw_gsi = False
+                    synth_flash = 0
 
             drive_flash = max(effective_flash, synth_flash)
 
