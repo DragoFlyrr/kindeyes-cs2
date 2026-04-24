@@ -1,5 +1,7 @@
 # flashbangcolorchanger
 
+> **Status: work in progress — not a final release. Expect rough edges.**
+
 CS2 accessibility tool — darkens the screen during flashbangs for players with light sensitivity.
 
 Two independent implementations live in this repo. Pick one:
