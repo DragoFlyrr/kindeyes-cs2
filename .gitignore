@@ -15,3 +15,8 @@ ahk_err.log
 ahk_out.log
 .venv/
 *.pyc
+# PyInstaller build artifacts (produced by build_release.ps1)
+build/
+dist/
+*.spec
+flashdim-release.zip
