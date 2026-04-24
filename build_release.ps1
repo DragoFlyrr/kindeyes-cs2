@@ -18,7 +18,17 @@ if (-not (Test-Path -LiteralPath 'flashdim_hot.dll')) {
 }
 
 Write-Host 'Building flashdim.exe (PyInstaller)...'
-py -3.13 -m PyInstaller --onedir --noconsole `
+# Prefer `py` (Windows Python launcher, picks highest installed) and fall
+# back to whatever python.exe is on PATH. Caller can override with $env:PY.
+$py = if ($env:PY) { $env:PY }
+      elseif (Get-Command py      -ErrorAction SilentlyContinue) { 'py' }
+      elseif (Get-Command python  -ErrorAction SilentlyContinue) { 'python' }
+      else { $null }
+if (-not $py) {
+    Write-Host 'No Python found. Install Python 3.10+ from https://www.python.org/downloads/' -ForegroundColor Red
+    exit 1
+}
+& $py -m PyInstaller --onedir --noconsole `
     --name flashdim `
     --add-binary 'flashdim_hot.dll;.' `
     --clean --noconfirm gsi_flashdim.py | Out-Null
