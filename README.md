@@ -15,7 +15,15 @@ No Python install, no manual path editing, no launch options. CS2 must run in **
 
 On first launch Windows SmartScreen may show "Windows protected your PC" — click **More info → Run anyway**. The binary is unsigned because code-signing certs cost ~$300/yr; source is in this repo.
 
-**Hotkeys:** F8 confirm pulse · F9 toggle · F10 eyelids · F11 reload · F12 kill
+### Hotkeys
+
+| Key | What it does | When to use it |
+| --- | --- | --- |
+| **F8**  | Confirm pulse | Flashes the overlay manually so you can see it works without waiting for a real flashbang. |
+| **F9**  | Toggle on/off | Disables detection without quitting. Press again to re-enable. |
+| **F10** | Eyelids | **Hold** to manually darken the screen (useful for cutscenes, sun glare, etc.). Releases on key-up. |
+| **F11** | Fast reload | Restarts the overlay in ~0.6 s. Use if it seems stuck or unresponsive. |
+| **F12** | Kill | Closes the overlay cleanly. No restart. |
 
 ---
 
