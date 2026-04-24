@@ -467,9 +467,11 @@ def hotkey_watcher(settings):
     eye_vk = VK.get(settings.get("HotkeyEyelids", "F10").upper(), VK["F10"])
     cfm_vk = VK.get(settings.get("HotkeyConfirm", "F8").upper(), VK["F8"])
     rld_vk = VK.get(settings.get("HotkeyReload", "F11").upper(), VK["F11"])
+    kil_vk = VK.get(settings.get("HotkeyKill", "F12").upper(), VK["F12"])
     prev_tog = False
     prev_cfm = False
     prev_rld = False
+    prev_kil = False
     while True:
         tog_now = bool(user32.GetAsyncKeyState(tog_vk) & 0x8000)
         if tog_now and not prev_tog:
@@ -487,11 +489,17 @@ def hotkey_watcher(settings):
         rld_now = bool(user32.GetAsyncKeyState(rld_vk) & 0x8000)
         if rld_now and not prev_rld:
             log("reload hotkey pressed -> exiting (run_gsi.bat will restart)")
-            # brief pulse so user sees acknowledgement
-            threading.Thread(target=_run_confirm_pulse, daemon=True).start()
-            time.sleep(0.9)
+            # Fast exit — no pre-exit pulse. Restart self-test is the
+            # visual confirmation. Every ms matters: a flash thrown during
+            # reload downtime can't be caught.
             os._exit(7)  # bat file restarts on exit code 7
         prev_rld = rld_now
+
+        kil_now = bool(user32.GetAsyncKeyState(kil_vk) & 0x8000)
+        if kil_now and not prev_kil:
+            log("kill hotkey pressed -> exiting (no restart)")
+            os._exit(0)  # code 0 won't re-enter the run_gsi.bat loop
+        prev_kil = kil_now
 
         eye_now = bool(user32.GetAsyncKeyState(eye_vk) & 0x8000)
         with state.lock:
@@ -541,6 +549,11 @@ def run_unified_loop(settings, host, port):
     max_alpha = float(settings.get("MaxAlpha", "0.95"))
     tick_ms = max(1, int(settings.get("TickMs", "1")))
     self_test = settings.get("SelfTestOnStart", "1").strip().lower() not in ("0", "false", "no", "")
+    # F11 reload passes --reload via run_gsi.bat. Skip the 1.3s self-test
+    # pulse so the overlay is armed for the next flash in ~0.5s instead
+    # of ~2s. Cold starts still get the pulse as visual confirmation.
+    if "--reload" in sys.argv:
+        self_test = False
     synth_profile = settings.get("SynthesizeProfile", "1").strip().lower() not in ("0", "false", "no", "")
     full_blind_s = float(settings.get("FullBlindMs", "1880")) / 1000.0
     fade_s = float(settings.get("FadeMs", "2990")) / 1000.0
@@ -1111,13 +1124,13 @@ def run_unified_loop(settings, host, port):
             # flash is over — kill the synth early. 0.3s grace survives
             # a single dropped GSI packet while still reliably catching
             # the 0.95s wide-angle decay.
-            if _mag_profile_active and _profile_saw_gsi:
-                elapsed = t_tick - _mag_profile_start
-                if effective_flash <= 0 and elapsed > 0.3:
-                    _mag_profile_active = False
-                    _mag_profile_audio_only = False
-                    _profile_saw_gsi = False
-                    synth_flash = 0
+            # Angle shortening disabled for accessibility. CS2 can hold
+            # `flashed` constant through the blind phase (no updates with
+            # buffer=0, heartbeat=30s) and then push a single `flashed=0`,
+            # which would cut the synth at ~blind length. Seen in-game on
+            # flashes that pushed flashed=1 at trigger and flashed=0 1.7s
+            # later. Better to over-dim by 3s on wide-angle than under-dim
+            # on a head-on. Synth runs its full blind+fade every time.
 
             drive_flash = max(effective_flash, synth_flash)
 
