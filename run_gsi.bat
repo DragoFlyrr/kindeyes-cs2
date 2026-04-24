@@ -1,8 +1,14 @@
 @echo off
 cd /d "%~dp0"
+:loop
 where pythonw.exe >nul 2>&1
 if %errorlevel%==0 (
-    start "" pythonw.exe "%~dp0gsi_flashdim.py"
+    pythonw.exe "%~dp0gsi_flashdim.py"
 ) else (
-    start "" python.exe "%~dp0gsi_flashdim.py"
+    python.exe "%~dp0gsi_flashdim.py"
+)
+REM Exit code 7 = reload hotkey. Anything else exits the wrapper.
+if %errorlevel%==7 (
+    timeout /t 1 /nobreak >nul
+    goto loop
 )

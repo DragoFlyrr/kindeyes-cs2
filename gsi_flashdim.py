@@ -51,6 +51,8 @@ DEFAULT_SETTINGS = {
         "DebugHud": "1",
         "HotkeyToggle": "F9",
         "HotkeyEyelids": "F10",
+        "HotkeyConfirm": "F8",
+        "HotkeyReload": "F11",
         "TickMs": "1",
         "LatencyProbe": "0",
         "SelfTestOnStart": "1",
@@ -445,10 +447,27 @@ def finish_gsi_conn(conn, prebuf, prebuf_n, t_start, snap_perf,
             pass
 
 
+def _run_confirm_pulse():
+    """Short visual 'I'm alive' pulse — two gentle dims so the user
+    can see the overlay is active without it being jarring."""
+    log("confirm: overlay alive-pulse")
+    for v in [120, 0, 120, 0]:
+        with state.lock:
+            state.self_test_flash = v
+        time.sleep(0.18)
+    with state.lock:
+        state.self_test_flash = 0
+    log("confirm: pulse complete")
+
+
 def hotkey_watcher(settings):
     tog_vk = VK.get(settings.get("HotkeyToggle", "F9").upper(), VK["F9"])
     eye_vk = VK.get(settings.get("HotkeyEyelids", "F10").upper(), VK["F10"])
+    cfm_vk = VK.get(settings.get("HotkeyConfirm", "F8").upper(), VK["F8"])
+    rld_vk = VK.get(settings.get("HotkeyReload", "F11").upper(), VK["F11"])
     prev_tog = False
+    prev_cfm = False
+    prev_rld = False
     while True:
         tog_now = bool(user32.GetAsyncKeyState(tog_vk) & 0x8000)
         if tog_now and not prev_tog:
@@ -457,6 +476,21 @@ def hotkey_watcher(settings):
                 now_enabled = state.enabled
             log(f"toggle -> enabled={now_enabled}")
         prev_tog = tog_now
+
+        cfm_now = bool(user32.GetAsyncKeyState(cfm_vk) & 0x8000)
+        if cfm_now and not prev_cfm:
+            threading.Thread(target=_run_confirm_pulse, daemon=True).start()
+        prev_cfm = cfm_now
+
+        rld_now = bool(user32.GetAsyncKeyState(rld_vk) & 0x8000)
+        if rld_now and not prev_rld:
+            log("reload hotkey pressed -> exiting (run_gsi.bat will restart)")
+            # brief pulse so user sees acknowledgement
+            threading.Thread(target=_run_confirm_pulse, daemon=True).start()
+            time.sleep(0.9)
+            os._exit(7)  # bat file restarts on exit code 7
+        prev_rld = rld_now
+
         eye_now = bool(user32.GetAsyncKeyState(eye_vk) & 0x8000)
         with state.lock:
             state.eyelids = eye_now
