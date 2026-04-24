@@ -1,4 +1,4 @@
-# flashbangcolorchanger
+# kindeyes
 
 > **Status: work in progress — not a final release. Expect rough edges.**
 
